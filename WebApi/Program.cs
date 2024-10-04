@@ -22,10 +22,16 @@ builder.Services.AddDbContext<HshopContext>(options =>
 builder.Services.AddAutoMapper(typeof(MapperProfile));
 
 // Đăng ký các dịch vụ và repository
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUnitOfWorkBase, UnitOfWorkBase>(); 
-builder.Services.AddScoped<IProductAppService, ProductAppService>(); 
-
+//Product
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductAppService, ProductAppService>();
+//Category
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryAppService, CategoryAppService>();
+//Supplier
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<ISupplierAppService, SupplierAppService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

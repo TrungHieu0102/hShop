@@ -18,10 +18,9 @@ Before getting started, ensure that you have the following installed:
 ### Step 1: Clone the Project
 First, clone the repository to your local machine:
 ```bash
-git clone https://github.com/username/hshop.git
+git clone https://github.com/TrungHieu0102/hshop.git
 cd hshop
 ```
-Replace ```username``` with your GitHub username.
 ### Step 2: Configure the Database
 1. Create a database in SQL Server (or any database you prefer).
 2. Update the connection string in the  ```appsettings.json``` file located in the ```WebApi/```  folderto point to your database:

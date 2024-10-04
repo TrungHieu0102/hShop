@@ -1,7 +1,7 @@
 ﻿
-namespace Core.Entities
+namespace Application.DTOs
 {
-    public class Supplier
+    public class SupplierDto
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
@@ -10,5 +10,6 @@ namespace Core.Entities
         public string Email { get; set; }
         public string Address { get; set; }
         public string Description { get; set; }
+
     }
 }

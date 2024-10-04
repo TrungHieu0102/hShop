@@ -1,0 +1,22 @@
+# Visual Studio
+.vscode/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.code-workspace
+
+# Build Folders (bin, obj, etc)
+bin/
+obj/
+
+# NuGet
+*.nupkg
+# Include if using `packages.config`
+packages/
+
+# .NET
+project.lock.json
+project.fragment.lock.json
+artifacts/

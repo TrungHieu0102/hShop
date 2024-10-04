@@ -1,11 +1,30 @@
+﻿using Application.Interfaces;
+using Application.Mappings;
+using Application.Services;
+using Core.Interfaces;
+using Infrastructure.Data; 
+using Infrastructure.UnitOfWork;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("hShop");
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Cấu hình DbContext với Entity Framework Core
+builder.Services.AddDbContext<HshopContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// Đăng ký AutoMapper
+builder.Services.AddAutoMapper(typeof(MapperProfile));
+
+// Đăng ký các dịch vụ và repository
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IUnitOfWorkBase, UnitOfWorkBase>(); 
+builder.Services.AddScoped<IProductAppService, ProductAppService>(); 
 
 var app = builder.Build();
 
@@ -17,7 +36,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

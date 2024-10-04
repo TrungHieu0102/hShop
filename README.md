@@ -63,7 +63,7 @@ GET https://localhost:5001/api/products
 
 ```
 ## 4. Technologies Used
-- ASP.NET Core 6.0
+- ASP.NET Core 8.0
 - Entity Framework Core
 - SQL Server
 - AutoMapper

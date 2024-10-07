@@ -1,9 +1,12 @@
 ﻿
 namespace Core.Interfaces
 {
-    public interface IUnitOfWorkBase : IDisposable
+    public interface IUnitOfWorkBase
     {
-        Task SaveChangesAsync();
+        IProductRepository Products { get; }
+        ICategoryRepository Categories { get; }
+        ISupplierRepository Suppliers { get; }  
+        Task<int> CompleteAsync();
     }
 
 }

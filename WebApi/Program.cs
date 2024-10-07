@@ -25,13 +25,13 @@ builder.Services.AddAutoMapper(typeof(MapperProfile));
 builder.Services.AddScoped<IUnitOfWorkBase, UnitOfWorkBase>(); 
 //Product
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IProductAppService, ProductAppService>();
-//Category
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICategoryAppService, CategoryAppService>();
-//Supplier
-builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
-builder.Services.AddScoped<ISupplierAppService, SupplierAppService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+////Category
+//builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+//builder.Services.AddScoped<ICategoryAppService, CategoryAppService>();
+////Supplier
+//builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+//builder.Services.AddScoped<ISupplierAppService, SupplierAppService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

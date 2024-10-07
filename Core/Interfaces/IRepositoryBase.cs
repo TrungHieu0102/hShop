@@ -1,12 +1,19 @@
 ﻿
+using Core.Entities;
+using System.Linq.Expressions;
+
 namespace Core.Interfaces
 {
-    public interface IRepositoryBase<T> where T : class
+    public interface IRepositoryBase<T,Key> where T : class
     {
-        Task<T> GetByIdAsync(Guid id);
+        Task<T> GetByIdAsync(Key id);
+        IEnumerable<T> Find(Expression<Func<T, bool>> expression);
         Task<IEnumerable<T>> GetAllAsync();
-        Task AddAsync(T entity);
-        Task UpdateAsync(T entity);
-        Task DeleteAsync(Guid id);
+        void Add(T entity);
+        void AddRange(IEnumerable<T> entities);
+        void Delete(T entity);
+        void RemoveRange(IEnumerable<T> entities);
+        void Update(T entity); 
+
     }
 }

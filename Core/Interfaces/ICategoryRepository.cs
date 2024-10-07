@@ -2,7 +2,7 @@
 
 namespace Core.Interfaces
 {
-    public interface ICategoryRepository : IRepositoryBase<Category>
+    public interface ICategoryRepository : IRepositoryBase<Category, Guid>
     {
 
     }

@@ -1,15 +1,18 @@
-﻿using Core.Entities;
+﻿using AutoMapper;
+using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Repositories;
-;
+
 
 namespace Infrastructure.Data
 {
-    public class SupplierRepository : RepositoryBase<Supplier>, ISupplierRepository
+    public class SupplierRepository : RepositoryBase<Supplier, Guid>, ISupplierRepository
     {
-        public SupplierRepository(HshopContext context) : base(context)
-        {
+        private readonly IMapper _mapper;
 
+        public SupplierRepository(HshopContext context, IMapper mapper) : base(context)
+        {
+            _mapper = mapper;
         }
     }
 }

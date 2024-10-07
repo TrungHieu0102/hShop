@@ -2,7 +2,7 @@
 
 namespace Core.Interfaces
 {
-    public interface ISupplierRepository : IRepositoryBase<Supplier>
+    public interface ISupplierRepository : IRepositoryBase<Supplier, Guid>
     {
 
     }

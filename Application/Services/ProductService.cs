@@ -20,7 +20,7 @@ namespace Application.Services
         public async Task<int> AddProductAsync(CreateUpdateProductDto productDto)
         {
             var slug = SlugHelper.GenerateSlug(productDto.Name);
-            if(await _unitOfWork.Products.IsSlugExits(slug))
+            if (await _unitOfWork.Products.IsSlugExits(slug))
             {
                 throw new InvalidOperationException("Slug already exists.");
             }
@@ -32,16 +32,19 @@ namespace Application.Services
         }
         public async Task<bool> DeleteProductAsync(Guid id)
         {
-            var product = await _unitOfWork.Products.GetByIdAsync(id);
-            if (product != null)
+            try
             {
+                var product = await _unitOfWork.Products.GetByIdAsync(id);
                 _unitOfWork.Products.Delete(product);
                 var result = await _unitOfWork.CompleteAsync();
                 return result > 0;
             }
-            return false; 
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
         }
-        public async Task<PagedResult<ProductDto>> GetAllProductsAsync(int page, int pageSize, string search, bool IsDecsending = false )
+        public async Task<PagedResult<ProductDto>> GetAllProductsAsync(int page, int pageSize, string search, bool IsDecsending = false)
         {
             var products = await _unitOfWork.Products.GetAllAsync();
 
@@ -65,29 +68,60 @@ namespace Application.Services
             };
         }
 
-        public async Task<ProductDto> GetProductByIdAsync(Guid id)
+        public async Task<Result<ProductDto>> GetProductByIdAsync(Guid id)
         {
-            var product = await _unitOfWork.Products.GetByIdAsync(id);
-            return _mapper.Map<ProductDto>(product);
+            try
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(id);
+                var productDto = _mapper.Map<ProductDto>(product);
+                return new Result<ProductDto>
+                {
+                    IsSuccess = true,
+                    Data = productDto
+                };
+            }
+            catch (InvalidOperationException)
+            {
+                return new Result<ProductDto>
+                {
+                    IsSuccess = false,
+                    Message = "Product not found."
+                };
+            }
         }
 
-        public async Task UpdateProductAsync(Guid id, CreateUpdateProductDto productDto)
-        {      
-            var existingProduct = await _unitOfWork.Products.GetByIdAsync(id);
-            if (existingProduct == null)
+        public async Task<Result<Product>> UpdateProductAsync(Guid id, CreateUpdateProductDto productDto)
+        {
+            try
             {
-                throw new InvalidOperationException("Product not found.");
-            }
-            var slug = SlugHelper.GenerateSlug(productDto.Name);
+                var product = await _unitOfWork.Products.GetByIdAsync(id);
+                var slug = SlugHelper.GenerateSlug(productDto.Name);
+                if (await _unitOfWork.Products.IsSlugExits(slug))
+                {
+                    return new Result<Product>
+                    {
+                        IsSuccess = false,
+                        Message = "Slug already exists."
+                    };
+                }
+                _mapper.Map(productDto, product);
 
-            if (await _unitOfWork.Products.IsSlugExits(slug))
-            {
-                throw new InvalidOperationException("Slug already exists for another product.");
+                product.Slug = slug;
+                _unitOfWork.Products.Update(product);
+                await _unitOfWork.CompleteAsync();
+                return new Result<Product>
+                {
+                    IsSuccess = true
+                };
             }
-            _mapper.Map(productDto, existingProduct);
-            existingProduct.Slug = slug;
-            _unitOfWork.Products.Update(existingProduct);
-            await _unitOfWork.CompleteAsync();
+            catch (InvalidOperationException)
+            {
+                return new Result<Product>
+                {
+                    IsSuccess = false,
+                    Message = "Product not found."
+                };
+            }
         }
     }
 }

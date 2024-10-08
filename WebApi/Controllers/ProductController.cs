@@ -10,11 +10,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
-    private readonly IMapper _mapper;
-    public ProductsController(IProductService productService, IMapper mapper)
+   
+    public ProductsController(IProductService productService)
     {
         _productService = productService;
-        _mapper = mapper;
     }
 
     [HttpGet]
@@ -25,14 +24,16 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDto>> GetProductById(Guid id)
+    public async Task<IActionResult> GetProductById(Guid id)
     {
-        var product = await _productService.GetProductByIdAsync(id);
-        if (product == null)
+        var result = await _productService.GetProductByIdAsync(id);
+        if (!result.IsSuccess)
         {
-            return NotFound();
-        }
-        return Ok(product);
+            return NotFound(result.Message);
+
+        } 
+        return Ok(result.Data);
+
     }
 
     [HttpPost]
@@ -61,15 +62,12 @@ public class ProductsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateUpdateProductDto productDto)
     {
-        try
+      var result = await _productService.UpdateProductAsync(id, productDto);
+        if (!result.IsSuccess)
         {
-            await _productService.UpdateProductAsync(id, productDto); 
-            return Ok("Product updated successfully.");
+            return NotFound(result.Message);
         }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+       return Ok();
     }
 
     [HttpDelete("{id}")]

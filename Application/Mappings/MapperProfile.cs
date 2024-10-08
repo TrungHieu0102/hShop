@@ -13,7 +13,9 @@ namespace Application.Mappings
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Supplier, SupplierDto>().ReverseMap();    
             CreateMap<CreateUpdateProductDto, Product>().ReverseMap();  
-            
+            CreateMap<CreateUpdateCategoryDto, Category>().ReverseMap();
+           
+
         }
     }
 }

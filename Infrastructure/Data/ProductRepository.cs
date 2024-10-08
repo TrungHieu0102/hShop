@@ -28,10 +28,7 @@ namespace Infrastructure.Data
             return product;
         }
 
-        public Task<PagedResult<Product>> GetPagedProductsAsync(int page, int pageSize)
-        {
-            throw new NotImplementedException();
-        }
+      
 
         public async Task<IEnumerable<Product>> SearchByNameAsync(string name)
         {

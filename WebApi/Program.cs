@@ -27,8 +27,8 @@ builder.Services.AddScoped<IUnitOfWorkBase, UnitOfWorkBase>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 ////Category
-//builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-//builder.Services.AddScoped<ICategoryAppService, CategoryAppService>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 ////Supplier
 //builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 //builder.Services.AddScoped<ISupplierAppService, SupplierAppService>();

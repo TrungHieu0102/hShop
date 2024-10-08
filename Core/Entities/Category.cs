@@ -12,7 +12,9 @@ namespace Core.Entities
         [MaxLength(120)]
         [Required]
         public string Slug { get; set; } = string.Empty;
+        [MaxLength(500)]
         public string ?Description { get; set; }
+        [MaxLength(300)]
         public string? PictureUrl { get; set; } 
 
     }

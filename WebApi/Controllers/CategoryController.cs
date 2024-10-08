@@ -1,61 +1,80 @@
-﻿//using Application.DTOs;
-//using Application.Interfaces;
-//using Microsoft.AspNetCore.Mvc;
+﻿using Application.DTOs;
+using Application.Interfaces;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
-//namespace WebApi.Controllers
-//{
-//    [ApiController]
-//    [Route("api/[controller]")]
-
-//    public class CategoryController : ControllerBase
-//    {
-//        private readonly ICategoryAppService _categoryAppService;
-//        public CategoryController(ICategoryAppService categoryAppService)
-//        {
-//            _categoryAppService = categoryAppService;
-//        }
-//        [HttpGet]
-//        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAllCategories()
-//        {
-//            var categories = await _categoryAppService.GetAllCategoriesAsync();
-//            return Ok(categories);
-//        }
-
-//        [HttpGet("{id}")]
-//        public async Task<ActionResult<CategoryDto>> GetCategoryById(Guid id)
-//        {
-//            var category = await _categoryAppService.GetCategoryByIdAsync(id);
-//            if (category == null)
-//            {
-//                return NotFound();
-//            }
-//            return Ok(category);
-//        }
-
-//        [HttpPost]
-//        public async Task<ActionResult> AddCategory(CategoryDto categoryDto)
-//        {
-//            await _categoryAppService.AddCategoryAsync(categoryDto);
-//            return CreatedAtAction(nameof(GetCategoryById), new { id = categoryDto.Id }, categoryDto);
-//        }
-
-//        [HttpPut("{id}")]
-//        public async Task<ActionResult> UpdateCategory(Guid id, CategoryDto categoryDto)
-//        {
-//            if (id != categoryDto.Id)
-//            {
-//                return BadRequest();
-//            }
-
-//            await _categoryAppService.UpdateCategoryAsync(categoryDto);
-//            return NoContent();
-//        }
-
-//        [HttpDelete("{id}")]
-//        public async Task<ActionResult> DeleteCategory(Guid id)
-//        {
-//            await _categoryAppService.DeleteCategoryAsync(id);
-//            return NoContent();
-//        }
-//    }
-//}
+namespace WebApi.Controllers;
+[ApiController]
+[Route("api/[controller]")]
+public class CategoryController : ControllerBase
+{
+    private readonly ICategoryService _categoryService;
+    public CategoryController(ICategoryService categoryService)
+    {
+        _categoryService= categoryService;
+    }
+    [HttpGet]
+    public async Task<IActionResult> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
+    {
+        var pagedResult = await _categoryService.GetAllAsync(page, pageSize, search, IsDecsending);
+        return Ok(pagedResult);
+    }
+    [HttpGet]
+    [Route("{id}")]
+    public async Task<IActionResult> GetCategoryById(Guid id)
+    {
+        var result = await _categoryService.GetByIdAsync(id);
+        if (!result.IsSuccess)
+        {
+            return NotFound(result.Message);
+        }
+        return Ok(result.Data);
+    }
+    [HttpPost]
+    public async Task<IActionResult> AddCategory([FromBody] CreateUpdateCategoryDto categoryDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        try
+        {
+            var resutl = await _categoryService.AddCategoryAsync(categoryDto);
+            if (resutl == 0)
+            {
+                return StatusCode(500, "Failed to create category");
+            }
+            return Created();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+    [HttpPut]
+    [Route("{id}")]
+    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CreateUpdateCategoryDto categoryDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+        var result = await _categoryService.UpdateCategoryAsync(id, categoryDto);
+        if (!result.IsSuccess)
+        {
+            return NotFound(result.Message);
+        }
+        return NoContent();
+    }
+    [HttpDelete]
+    [Route("{id}")]
+    public async Task<IActionResult> DeleteCategory(Guid id)
+    {
+        var result = await _categoryService.DeleteCategoryAsync(id);
+        if (!result)
+        {
+            return NotFound("Category not found");
+        }
+        return NoContent();
+    }
+}

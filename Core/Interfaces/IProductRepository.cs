@@ -6,7 +6,6 @@ namespace Core.Interfaces
     {
         Task<IEnumerable<Product>> GetByCategoryIdAsync(Guid categoryId);
         Task<IEnumerable<Product>> SearchByNameAsync(string name);
-        Task<PagedResult<Product>> GetPagedProductsAsync(int page, int pageSize);
         Task<Product> GetBySlug(string slug);
         Task<bool> IsSlugExits(string slug);
     }

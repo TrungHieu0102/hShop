@@ -1,13 +1,15 @@
 ﻿using Core.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 
 namespace Infrastructure.Data
 {
-    public class HshopContext : DbContext
+    public class HshopContext : IdentityDbContext<User>
     {
         public HshopContext(DbContextOptions<HshopContext> options) : base(options)
         {
+
         }
 
         public DbSet<Product> Products { get; set; }

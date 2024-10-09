@@ -1,8 +1,9 @@
-﻿using Application.DTOs;
+﻿using Application.Constants;
+using Application.DTOs;
 using Application.Interfaces;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 
 [ApiController]
@@ -15,7 +16,7 @@ public class ProductsController : ControllerBase
     {
         _productService = productService;
     }
-
+    [Authorize(Roles = RoleConstants.User)]
     [HttpGet]
     public async Task<IActionResult> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
     {
@@ -24,6 +25,8 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = RoleConstants.Admin)]
+
     public async Task<IActionResult> GetProductById(Guid id)
     {
         var result = await _productService.GetProductByIdAsync(id);
@@ -35,7 +38,6 @@ public class ProductsController : ControllerBase
         return Ok(result.Data);
 
     }
-
     [HttpPost]
     public async Task<ActionResult> AddProduct([FromBody] CreateUpdateProductDto productDto)
     {

@@ -16,9 +16,9 @@ namespace Application.Services
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly RoleManager<Role> _roleManager;
         private readonly IConfiguration _configuration;
-        public AuthService(UserManager<User> userManager, IConfiguration configuration, SignInManager<User> signInManager, RoleManager<IdentityRole> roleManager)
+        public AuthService(UserManager<User> userManager, IConfiguration configuration, SignInManager<User> signInManager, RoleManager<Role> roleManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -41,24 +41,30 @@ namespace Application.Services
             var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Email, signInDto.Email),
+                new Claim(ClaimTypes.Name, signInDto.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             var userRole = await _userManager.GetRolesAsync(user);
             foreach (var role in userRole)
             {
-                authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));                           
+                authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
             }
-            var authKey = Encoding.UTF8.GetBytes(_configuration["JWT:Key"]);
+            var jwtKey = _configuration["JWT:Key"];
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                throw new InvalidOperationException("JWT Key is not configured.");
+            }
+            var authKey = Encoding.UTF8.GetBytes(jwtKey);
             var token = new JwtSecurityToken(
                 issuer: _configuration["JWT:Issuer"],
                 audience: _configuration["JWT:Audience"],
                 claims: authClaims,
-                expires: DateTime.Now.AddMinutes(1),
+                expires: DateTime.Now.AddMinutes(30),
                 signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey), SecurityAlgorithms.HmacSha256)
             );
 
-            var refreshToken = RefreshToken.GenerateRefreshToken(); 
-            await SaveRefreshToken(user.Id, refreshToken); 
+            var refreshToken = RefreshToken.GenerateRefreshToken();
+            await SaveRefreshToken(user.Id, refreshToken);
 
             return new AuthResponseDto
             {
@@ -66,14 +72,15 @@ namespace Application.Services
                 RefreshToken = refreshToken,
                 IsSuccess = true,
                 Message = string.Empty,
-                Expiration = user.RefreshTokenExpiryTime.Value
+                Expiration = user.RefreshTokenExpiryTime ?? DateTime.MinValue
             };
         }
         public async Task<(bool, string)> SignUpAsync(SignUpDto signUpDto)
         {
             var user = new User
             {
-                FullName = signUpDto.FullName,
+                LastName = signUpDto.LastName,
+                FirstName = signUpDto.FirstName,
                 Email = signUpDto.Email,
                 UserName = signUpDto.Email
             };
@@ -86,7 +93,7 @@ namespace Application.Services
 
             if (!await _roleManager.RoleExistsAsync(RoleConstants.User))
             {
-                await _roleManager.CreateAsync(new IdentityRole(RoleConstants.User));
+                await _roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
             }
             await _userManager.AddToRoleAsync(user, RoleConstants.User);
 
@@ -96,16 +103,15 @@ namespace Application.Services
         {
             await _signInManager.SignOutAsync();
         }
-        // Phương thức lưu refresh token vào DB
-        private async Task SaveRefreshToken(string userId, string refreshToken)
+        private async Task SaveRefreshToken(Guid userId, string refreshToken)
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user != null)
             {
-                user.RefreshToken = refreshToken; 
-                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); 
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
-                await _userManager.UpdateAsync(user); 
+                await _userManager.UpdateAsync(user);
             }
         }
     }

@@ -2,6 +2,7 @@
 using Core.Entities;
 using Core.Interfaces;
 using Core.Model;
+using Infrastructure.Data.Context;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 

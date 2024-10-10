@@ -2,10 +2,12 @@
 using Application.Interfaces;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Filters;
 
 namespace WebApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
+[ValidateModel]
 public class CategoryController : ControllerBase
 {
     private readonly ICategoryService _categoryService;
@@ -33,8 +35,7 @@ public class CategoryController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddCategory([FromBody] CreateUpdateCategoryDto categoryDto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+       
         try
         {
             var resutl = await _categoryService.AddCategoryAsync(categoryDto);
@@ -57,8 +58,7 @@ public class CategoryController : ControllerBase
     [Route("{id}")]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CreateUpdateCategoryDto categoryDto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+      
         var result = await _categoryService.UpdateCategoryAsync(id, categoryDto);
         if (!result.IsSuccess)
         {

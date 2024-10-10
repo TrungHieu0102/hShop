@@ -1,5 +1,6 @@
 ﻿using Application.DTOs;
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
@@ -9,6 +10,7 @@ namespace WebApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        
 
         public AuthController(IAuthService authService)
         {
@@ -38,27 +40,35 @@ namespace WebApi.Controllers
             {
                 return BadRequest(new { Message = "Invalid login data", Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
             }
-
-            var result = await _authService.SignInAsycn(signInDto);
-            if (!result.IsSuccess)
+            try
             {
-                return Unauthorized(new { Message = "Login failed", Error = result.Message });
+
+                var result = await _authService.SignInAsycn(signInDto);
+                if (!result.IsSuccess)
+                {
+                    return Unauthorized(new { Message = "Login failed", Error = result.Message });
+                }
+
+                var response = new AuthResponseDto
+                {
+                    AccessToken = result.AccessToken,
+                    Message = "Login successful",
+                    RefreshToken = result.RefreshToken,
+                    Expiration = result.Expiration,
+                    IsSuccess = true
+                };
+
+                return Ok(response);
+
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(500, new { Message = ex.Message });
             }
 
-            var response = new AuthResponseDto
-            {
-                AccessToken = result.AccessToken,
-                Message = "Login successful",
-                RefreshToken = result.RefreshToken,
-                Expiration =result.Expiration,
-                IsSuccess = true
-            };
-
-            return Ok(response);
         }
-
-        // Đăng xuất
         [HttpPost("Signout")]
+        [Authorize]
         public async Task<IActionResult> SignOutUser()
         {
             await _authService.SignOutAsync();

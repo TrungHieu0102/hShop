@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Core.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Data.Context;
 
 
 namespace Infrastructure.UnitOfWork

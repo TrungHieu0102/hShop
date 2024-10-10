@@ -3,17 +3,28 @@ using Application.Mappings;
 using Application.Services;
 using Core.Entities;
 using Core.Interfaces;
+using Infrastructure.Data.Context;
 using Infrastructure.Data;
 using Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using WebApi.Authorization;
+using Core.ConfigOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("hShop");
+
+// Check if the JWT configuration is valid
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT Key is not configured.");
+}
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -37,43 +48,47 @@ builder.Services.AddSwaggerGen(options =>
             {
                 Reference = new OpenApiReference
                 {
-                    Type=ReferenceType.SecurityScheme,
-                    Id="Bearer"
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
                 }
             },
-            new string[]{}
+            new string[] { }
         }
     });
 });
 
-// Cấu hình DbContext với Entity Framework Core
+// Configure DbContext with Entity Framework Core
 builder.Services.AddDbContext<HshopContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Đăng ký AutoMapper
-builder.Services.AddAutoMapper(typeof(MapperProfile));
-
-// ĐĂNG KÝ DỊCH VỤ
-builder.Services.AddScoped<IUnitOfWorkBase, UnitOfWorkBase>();
-//Product
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IProductService, ProductService>();
-////Category
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-////Supplier
-//builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
-//builder.Services.AddScoped<ISupplierAppService, SupplierAppService>();
-//Auth
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// Đăng ký Identity
-
-builder.Services.AddIdentity<User, IdentityRole>()
+// Auth
+builder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<HshopContext>()
     .AddDefaultTokenProviders();
 
-//Jwt token
+// Register the policy provider
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+
+// Register AutoMapper
+builder.Services.AddAutoMapper(typeof(MapperProfile));
+
+// Register services
+builder.Services.AddScoped<IUnitOfWorkBase, UnitOfWorkBase>();
+// Product
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+// Category
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+// Auth
+builder.Services.AddScoped<IAuthService, AuthService>(); // Ensure AuthService has access to Identity services
+
+// Register Authorization Handler
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+// JWT token
+builder.Services.Configure<JwtConfigOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -84,17 +99,18 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
+    options.RequireHttpsMetadata = false; // Set to true in production
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidateLifetime = true, // Kiểm tra thời gian hết hạn
+        ValidateLifetime = true, // Validate expiration time
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)) // Use the jwtKey variable
     };
 });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -103,6 +119,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

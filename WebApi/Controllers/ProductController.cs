@@ -4,10 +4,12 @@ using Application.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Filters;
 
 
 [ApiController]
 [Route("api/[controller]")]
+[ValidateModel]
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
@@ -41,8 +43,7 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> AddProduct([FromBody] CreateUpdateProductDto productDto)
     {
-        if (!ModelState.IsValid)      
-            return BadRequest(ModelState);
+      
         try
         {
             var resutl = await _productService.AddProductAsync(productDto);

@@ -9,7 +9,7 @@ namespace Core.Model
     public class Result<T>
     {
         public bool IsSuccess { get; set; }
-        public string Message { get; set; }
-        public T Data { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public T Data { get; set; } = default!;
     }
 }

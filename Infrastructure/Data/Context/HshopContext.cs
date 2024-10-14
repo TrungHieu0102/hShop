@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.Reflection.Emit;
 
 
 namespace Infrastructure.Data.Context
@@ -33,7 +34,14 @@ namespace Infrastructure.Data.Context
             .HasKey(x => new { x.RoleId, x.UserId });
 
             builder.Entity<IdentityUserToken<Guid>>().ToTable("AppUserTokens")
-               .HasKey(x => new { x.UserId });
+            .HasKey(x => new { x.UserId });
+            builder.Entity<Product>()
+            .Property(p => p.Discount)
+            .HasColumnType("decimal(18,2"); 
+
+            builder.Entity<Product>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2"); 
         }
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {

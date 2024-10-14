@@ -15,6 +15,8 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using WebApi.Authorization;
 using Core.ConfigOptions;
+using Application.Common.Shared;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("hShop");
@@ -56,6 +58,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+      
 
 // Configure DbContext with Entity Framework Core
 builder.Services.AddDbContext<HshopContext>(options =>
@@ -65,6 +68,9 @@ builder.Services.AddDbContext<HshopContext>(options =>
 builder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<HshopContext>()
     .AddDefaultTokenProviders();
+//Email
+
+builder.Services.AddTransient<IEmailService, EmailService>();
 
 // Register the policy provider
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
@@ -129,7 +135,11 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Demo API V1");
+        c.RoutePrefix = string.Empty; 
+    });
 }
 
 app.UseHttpsRedirection();

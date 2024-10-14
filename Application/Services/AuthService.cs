@@ -7,6 +7,7 @@ using Core.Entities;
 using Core.SeedWorks;
 using Core.SeedWorks.Constants;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,7 +15,8 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-
+using Application.Common.Shared;
+using static Core.SeedWorks.Constants.Permissions;
 
 namespace Application.Services
 {
@@ -24,12 +26,15 @@ namespace Application.Services
         private readonly SignInManager<User> _signInManager;
         private readonly RoleManager<Role> _roleManager;
         private readonly IConfiguration _configuration;
-        public AuthService(UserManager<User> userManager, IConfiguration configuration, SignInManager<User> signInManager, RoleManager<Role> roleManager)
+        private readonly IEmailService _emailService;
+
+        public AuthService(UserManager<User> userManager, IConfiguration configuration, SignInManager<User> signInManager, RoleManager<Role> roleManager, IEmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _roleManager = roleManager;
+            _emailService = emailService;
         }
         public async Task<AuthResponseDto> SignInAsycn(SignInDto signInDto)
         {
@@ -39,10 +44,14 @@ namespace Application.Services
                 return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
             }
             var result = await _signInManager.PasswordSignInAsync(signInDto.Email, signInDto.Password, false, false);
-
+            var emailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
             if (!result.Succeeded)
             {
                 return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
+            }
+            if (!emailConfirmed)
+            {
+                return new AuthResponseDto { IsSuccess = false, Message = "Email is not confirmed" };
             }
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -59,6 +68,8 @@ namespace Application.Services
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             var userRole = await _userManager.GetRolesAsync(user);
+            await SendConfirmationEmail(signInDto.Email, user);
+
             foreach (var role in userRole)
             {
                 authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
@@ -100,6 +111,7 @@ namespace Application.Services
             };
 
             var result = await _userManager.CreateAsync(user, signUpDto.Password);
+
             if (!result.Succeeded)
             {
                 return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
@@ -109,7 +121,8 @@ namespace Application.Services
             {
                 await _roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
             }
-            await _userManager.AddToRoleAsync(user, RoleConstants.User);
+            await SendConfirmationEmail(signUpDto.Email, user);
+
 
             return (true, string.Empty);
         }
@@ -128,6 +141,31 @@ namespace Application.Services
                 await _userManager.UpdateAsync(user);
             }
         }
+        public async Task<string> ConfirmEmail(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (userId == null || token == null)
+            {
+                return "Link expired";
+            }
+            else if (user == null)
+            {
+                return "User not Found";
+            }
+            else
+            {
+                token = token.Replace(" ", "+");
+                var result = await _userManager.ConfirmEmailAsync(user, token);
+                if (result.Succeeded)
+                {
+                    return "Thank you for confirming your email";
+                }
+                else
+                {
+                    return "Email not confirmed";
+                }
+            }
+        }
         private async Task<List<string>> GetPermissionAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -135,7 +173,7 @@ namespace Application.Services
             var permissions = new List<string>();
             var allPermissions = new List<RoleClaimsDto>();
 
-            if (roles.Contains(Roles.Admin))
+            if (roles.Contains(Core.SeedWorks.Roles.Admin))
             {
                 var types = typeof(Permissions).GetTypeInfo().DeclaredNestedTypes;
                 foreach (var type in types)
@@ -155,6 +193,17 @@ namespace Application.Services
                 }
             }
             return permissions.Distinct().ToList();
+        }
+        private async Task SendConfirmationEmail(string? email, User? user)
+        {
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = $"http://localhost:5000/confirm-email?UserId={user.Id}&Token={token}";
+            await _emailService.SendEmailAsync(email, "Xác nhận đăng ký tài khoản", $"Vui lòng ấn vào <a href='{confirmationLink}'>đây</a>;.", true);
+        }
+        //SignUpConfirmationResponseViewModel
+        public class SignUpConfirmationResponseViewModel
+        {
+            public bool IsCreated { get; set; }
         }
     }
 

@@ -28,7 +28,7 @@ namespace Core.Entities
         public string Unit { get; set; } = string.Empty;
         public string? PictureUrl { get; set; }
         public decimal? Discount { get; set; }
-        public DateOnly DateCreated { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public DateTime DateCreated { get; set; } = DateTime.Now;
         public int? ViewCount { get; set; }  
         public Guid CategoryId { get; set; }
         public Category Category { get; set; }

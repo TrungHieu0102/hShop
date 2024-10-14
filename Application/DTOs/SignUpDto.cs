@@ -19,6 +19,7 @@ namespace Application.DTOs
         [Required]
         public string Password { get; set; } = null!;
         [Required]
+        [Compare("Password", ErrorMessage="Password and Confirm Password do not match")]
         public string ComfirmPassword { get; set; } = null!;
     }
 }

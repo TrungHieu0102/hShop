@@ -74,5 +74,11 @@ namespace WebApi.Controllers
             await _authService.SignOutAsync();
             return Ok(new { Message = "Logged out successfully" });
         }
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            var result = await _authService.ConfirmEmail(userId, token);
+            return Content(result);
+        }
     }
 }

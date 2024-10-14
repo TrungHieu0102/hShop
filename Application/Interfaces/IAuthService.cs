@@ -13,5 +13,6 @@ namespace Application.Interfaces
         Task<(bool,string)> SignUpAsync(SignUpDto signUpDto);
         Task<AuthResponseDto> SignInAsycn(SignInDto signInDto);
         Task SignOutAsync();
+        Task<string> ConfirmEmail(string userId, string token);
     }
 }

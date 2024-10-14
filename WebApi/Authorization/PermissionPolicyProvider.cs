@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
-
+#nullable disable
 namespace WebApi.Authorization
 {
     public class PermissionPolicyProvider : IAuthorizationPolicyProvider

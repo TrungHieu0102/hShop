@@ -1,14 +1,20 @@
 ﻿using Application.Constants;
 using Application.DTOs;
+using Application.Extensions;
 using Application.Extentions;
 using Application.Interfaces;
 using Core.Entities;
+using Core.SeedWorks;
+using Core.SeedWorks.Constants;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
+
 
 namespace Application.Services
 {
@@ -38,11 +44,19 @@ namespace Application.Services
             {
                 return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
             }
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var permission = await GetPermissionAsync(user.Id.ToString());
             var authClaims = new List<Claim>
             {
-                new Claim(ClaimTypes.Email, signInDto.Email),
-                new Claim(ClaimTypes.Name, signInDto.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                    new Claim(UserClaims.Id, user.Id.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, user.Email),
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(UserClaims.FirstName, user.FirstName),
+                    new Claim(UserClaims.Roles, string.Join(";", roles)),
+                    new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             var userRole = await _userManager.GetRolesAsync(user);
             foreach (var role in userRole)
@@ -113,6 +127,34 @@ namespace Application.Services
 
                 await _userManager.UpdateAsync(user);
             }
+        }
+        private async Task<List<string>> GetPermissionAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            var roles = await _userManager.GetRolesAsync(user);
+            var permissions = new List<string>();
+            var allPermissions = new List<RoleClaimsDto>();
+
+            if (roles.Contains(Roles.Admin))
+            {
+                var types = typeof(Permissions).GetTypeInfo().DeclaredNestedTypes;
+                foreach (var type in types)
+                {
+                    allPermissions.GetPermissions(type);
+                }
+                permissions.AddRange(allPermissions.Select(x => x.Value));
+            }
+            else
+            {
+                foreach (var roleName in roles)
+                {
+                    var role = await _roleManager.FindByNameAsync(roleName);
+                    var claims = await _roleManager.GetClaimsAsync(role);
+                    var roleClaimValues = claims.Select(x => x.Value).ToList();
+                    permissions.AddRange(roleClaimValues);
+                }
+            }
+            return permissions.Distinct().ToList();
         }
     }
 

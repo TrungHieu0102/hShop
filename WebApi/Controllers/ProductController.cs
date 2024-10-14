@@ -2,9 +2,11 @@
 using Application.DTOs;
 using Application.Interfaces;
 using AutoMapper;
+using Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Filters;
+using static Core.SeedWorks.Constants.Permissions;
 
 
 [ApiController]
@@ -13,7 +15,7 @@ using WebApi.Filters;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
-   
+
     public ProductsController(IProductService productService)
     {
         _productService = productService;
@@ -36,18 +38,20 @@ public class ProductsController : ControllerBase
         {
             return NotFound(result.Message);
 
-        } 
+        }
         return Ok(result.Data);
 
     }
     [HttpPost]
+    [Authorize(Products.Create)]
+
     public async Task<ActionResult> AddProduct([FromBody] CreateUpdateProductDto productDto)
     {
-      
+
         try
         {
             var resutl = await _productService.AddProductAsync(productDto);
-            if(resutl== 0)
+            if (resutl == 0)
             {
                 return StatusCode(500, "Failed to create product");
             }
@@ -65,12 +69,12 @@ public class ProductsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateUpdateProductDto productDto)
     {
-      var result = await _productService.UpdateProductAsync(id, productDto);
+        var result = await _productService.UpdateProductAsync(id, productDto);
         if (!result.IsSuccess)
         {
             return NotFound(result.Message);
         }
-       return Ok();
+        return Ok();
     }
 
     [HttpDelete("{id}")]
@@ -81,7 +85,7 @@ public class ProductsController : ControllerBase
         {
             return NotFound();
         }
-        if(!await _productService.DeleteProductAsync(id))
+        if (!await _productService.DeleteProductAsync(id))
         {
             return BadRequest();
         }

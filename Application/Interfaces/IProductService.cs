@@ -12,5 +12,7 @@ namespace Application.Interfaces
         Task<Result<Product>> UpdateProductAsync(Guid id, CreateUpdateProductDto productDto);
         Task<bool> DeleteProductAsync(Guid id);
         Task<PagedResult<ProductDto>> GetAllProductsAsync(int page, int pageSize, string search, bool IsDecsending);
+        Task<PagedResult<ProductDto>> GetProductByCategoryAsync(Guid categoryId, int page, int pageSize, bool IsDecsending);
+        Task<PagedResult<ProductDto>> SearchProductByNameAsync(string name, int page, int pageSize, bool IsDecsending);
     }
 }

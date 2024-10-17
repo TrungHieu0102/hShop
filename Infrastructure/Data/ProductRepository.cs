@@ -19,7 +19,7 @@ namespace Infrastructure.Data
         public async Task<IEnumerable<Product>> GetByCategoryIdAsync(Guid categoryId)
         {
            var product = await _context.Products.Where(p => p.CategoryId == categoryId).ToListAsync();
-            return product;
+           return product;
         }
 
         public async Task<Product> GetBySlug(string slug)

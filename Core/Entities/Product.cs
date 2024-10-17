@@ -1,39 +1,55 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Core.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-
-namespace Core.Entities
+public class Product
 {
-    [Table("Products")]
-    [Index(nameof(Slug), IsUnique = true)]
-    public class Product
-    {
-        [Key]
-        public Guid Id { get; set; }
-        [MaxLength(100)]
-        [Required]
-        public string Name { get; set; } = string.Empty;
-        [MaxLength(120)]
-        [Required]
-        public string Slug { get; set; } = string.Empty;
-        [MaxLength(255)]
-        public string Description { get; set; } = string.Empty;
-        [MaxLength(20)]
-        [Required]
-        public decimal Price { get; set; }
-        [MaxLength(20)]
-        [Required]
-        public string Unit { get; set; } = string.Empty;
-        public string? PictureUrl { get; set; }
-        public decimal? Discount { get; set; }
-        public DateTime DateCreated { get; set; } = DateTime.Now;
-        public int? ViewCount { get; set; }  
-        public Guid CategoryId { get; set; }
-        public Category Category { get; set; }
-        public Guid SupplierId { get; set; }
-        public Supplier Supplier { get; set; }
+    [Key]
+    public Guid Id { get; set; }
 
-    }
+    [MaxLength(100)]
+    [Required(ErrorMessage = "Product name is required.")]
+    public string Name { get; set; } = string.Empty;
+
+    [MaxLength(120)]
+    [Required(ErrorMessage = "Slug is required.")]
+    public string Slug { get; set; } = string.Empty;
+
+    [MaxLength(255)]
+    public string Description { get; set; } = string.Empty;
+
+    [Column(TypeName = "decimal(18, 2)")]
+    [Required(ErrorMessage = "Price is required.")]
+    [Range(0, double.MaxValue, ErrorMessage = "Price must be a positive value.")]
+    public decimal Price { get; set; }
+
+    [MaxLength(20)]
+    [Required(ErrorMessage = "Unit is required.")]
+    public string Unit { get; set; } = string.Empty;
+
+    [Column(TypeName = "decimal(18, 2)")]
+    [Range(0, 100, ErrorMessage = "Discount must be between 0 and 100.")]
+    public decimal? Discount { get; set; }
+
+    [Required]
+    public DateTime DateCreated { get; set; } = DateTime.Now;
+
+    [Range(0, int.MaxValue, ErrorMessage = "View count must be a positive value.")]
+    public int? ViewCount { get; set; }
+
+    [Required]
+    public Guid CategoryId { get; set; }
+
+    [ForeignKey(nameof(CategoryId))]
+    public Category Category { get; set; }
+
+    [Required]
+    public Guid SupplierId { get; set; }
+
+    [ForeignKey(nameof(SupplierId))]
+    public Supplier Supplier { get; set; }
+
+    // Giới hạn số lượng ảnh tối đa
+    [MaxLength(10)]
+    public ICollection<ProductImage> Images { get; set; }
 }

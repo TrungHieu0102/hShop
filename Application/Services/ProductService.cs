@@ -68,6 +68,21 @@ namespace Application.Services
             };
         }
 
+        public async Task<PagedResult<ProductDto>> GetProductByCategoryAsync(Guid categoryId, int page, int pageSize, bool IsDecsending)
+        {
+            var products = await _unitOfWork.Products.GetByCategoryIdAsync(categoryId);
+            products = IsDecsending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
+            var totalRows = products.Count();
+            var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            return new PagedResult<ProductDto>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                RowCount = totalRows,
+                Results = _mapper.Map<IEnumerable<ProductDto>>(pagedProducts)
+            };
+        }
+
         public async Task<Result<ProductDto>> GetProductByIdAsync(Guid id)
         {
             try
@@ -88,6 +103,21 @@ namespace Application.Services
                     Message = "Product not found."
                 };
             }
+        }
+
+        public async Task<PagedResult<ProductDto>> SearchProductByNameAsync(string name, int page, int pageSize, bool IsDecsending)
+        {
+            var products = await _unitOfWork.Products.SearchByNameAsync(name);
+            products = IsDecsending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
+            var totalRows = products.Count();
+            var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            return new PagedResult<ProductDto>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                RowCount = totalRows,
+                Results = _mapper.Map<IEnumerable<ProductDto>>(pagedProducts)
+            };
         }
 
         public async Task<Result<Product>> UpdateProductAsync(Guid id, CreateUpdateProductDto productDto)

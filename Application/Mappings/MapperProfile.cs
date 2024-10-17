@@ -3,6 +3,7 @@ using Application.DTOs.CategoriesDto;
 using Application.DTOs.ProductsDto;
 using Application.DTOs.RolesDto;
 using Application.DTOs.SuppliersDto;
+using Application.DTOs.UsersDto;
 using AutoMapper;
 using Core.Entities;
 
@@ -20,6 +21,8 @@ namespace Application.Mappings
             CreateMap<CreateUpdateCategoryDto, Category>().ReverseMap();
             CreateMap<SignInDto, User>().ReverseMap();
             CreateMap<RoleDto,Role>().ReverseMap(); 
+            CreateMap<UserInformatioResponeDto, User>().ReverseMap();
+            CreateMap<CreateUpdateUserDto, User>().ReverseMap();
         }
     }
 }

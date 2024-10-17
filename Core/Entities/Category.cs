@@ -5,6 +5,7 @@ namespace Core.Entities
 {
     public class Category
     {
+        [Key]
         public Guid Id { get; set; }
         [MaxLength(100)]
         [Required]

@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.DTOs
+namespace Application.DTOs.AuthsDto
 {
-    public class TokenResponseDto
+    public class ResetPasswordDto
     {
+        public string UserId { get; set; }
         public string Token { get; set; }
-        public DateTime Expiration { get; set; }
+        public string NewPassword { get; set; }
     }
 }
+

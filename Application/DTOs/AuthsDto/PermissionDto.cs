@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Application.DTOs
+
+
+using Application.DTOs.RolesDto;
+
+namespace Application.DTOs.AuthsDto
 {
     public class PermissionDto
     {

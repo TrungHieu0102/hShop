@@ -1,6 +1,4 @@
-﻿
-
-namespace Application.DTOs
+﻿namespace Application.DTOs.OrdersDto
 {
     internal class OrderDto
     {

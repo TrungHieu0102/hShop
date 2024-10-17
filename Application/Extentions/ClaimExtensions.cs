@@ -5,11 +5,11 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Application.DTOs;
+using Application.DTOs.RolesDto;
 using Core.Entities;
 using Microsoft.AspNetCore.Identity;
 #nullable disable
-namespace Application.Extensions
+namespace Application.Extentions
 {
     public static class ClaimExtensions
     {

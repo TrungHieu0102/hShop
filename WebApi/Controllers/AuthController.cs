@@ -1,5 +1,6 @@
-﻿using Application.DTOs;
+﻿using Application.DTOs.AuthsDto;
 using Application.Interfaces;
+using Application.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +11,11 @@ namespace WebApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        
-
-        public AuthController(IAuthService authService)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public AuthController(IAuthService authService, IHttpContextAccessor httpContextAccessor)
         {
             _authService = authService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpPost("Signup")]
@@ -80,5 +81,30 @@ namespace WebApi.Controllers
             var result = await _authService.ConfirmEmail(userId, token);
             return Content(result);
         }
+        [HttpPost("request-password-change")]
+        public async Task<IActionResult> RequestPasswordChange( string mail)
+        {
+            var result = await _authService.RequestPasswordChangeAsync(mail, User);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors.First().Description);
+            }
+
+            return Ok("OTP sent to your email.");
+        }
+        [HttpPost("confirm-password-change")]
+        public async Task<IActionResult> ConfirmPasswordChange([FromBody] ConfirmPasswordChangeRequest model)
+        {
+            var result = await _authService.ConfirmPasswordChangeAsync(model);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors.First().Description);
+            }
+
+            return Ok("Password changed successfully.");
+        }
+
     }
 }

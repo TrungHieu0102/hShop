@@ -1,4 +1,4 @@
-﻿using Application.DTOs;
+﻿using Application.DTOs.CategoriesDto;
 using Application.Interfaces;
 using AutoMapper;
 using Core.Entities;

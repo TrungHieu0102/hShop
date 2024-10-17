@@ -1,13 +1,13 @@
 ﻿using Application.Constants;
-using Application.DTOs;
-using Application.Extensions;
+using Application.DTOs.AuthsDto;
+using Application.DTOs.RolesDto;
 using Application.Extentions;
 using Application.Interfaces;
+using Application.Model;
 using Core.Entities;
 using Core.SeedWorks;
 using Core.SeedWorks.Constants;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -15,8 +15,7 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using Application.Common.Shared;
-using static Core.SeedWorks.Constants.Permissions;
+
 
 namespace Application.Services
 {
@@ -27,7 +26,6 @@ namespace Application.Services
         private readonly RoleManager<Role> _roleManager;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
-
         public AuthService(UserManager<User> userManager, IConfiguration configuration, SignInManager<User> signInManager, RoleManager<Role> roleManager, IEmailService emailService)
         {
             _userManager = userManager;
@@ -51,7 +49,8 @@ namespace Application.Services
             }
             if (!emailConfirmed)
             {
-                return new AuthResponseDto { IsSuccess = false, Message = "Email is not confirmed" };
+                await SendConfirmationEmail(signInDto.Email, user);
+                return new AuthResponseDto { IsSuccess = false, Message = "Please confirm your email " };
             }
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -68,7 +67,6 @@ namespace Application.Services
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             var userRole = await _userManager.GetRolesAsync(user);
-            await SendConfirmationEmail(signInDto.Email, user);
 
             foreach (var role in userRole)
             {
@@ -109,7 +107,6 @@ namespace Application.Services
                 Email = signUpDto.Email,
                 UserName = signUpDto.Email
             };
-
             var result = await _userManager.CreateAsync(user, signUpDto.Password);
 
             if (!result.Succeeded)
@@ -122,8 +119,6 @@ namespace Application.Services
                 await _roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
             }
             await SendConfirmationEmail(signUpDto.Email, user);
-
-
             return (true, string.Empty);
         }
         public async Task SignOutAsync()
@@ -172,8 +167,7 @@ namespace Application.Services
             var roles = await _userManager.GetRolesAsync(user);
             var permissions = new List<string>();
             var allPermissions = new List<RoleClaimsDto>();
-
-            if (roles.Contains(Core.SeedWorks.Roles.Admin))
+            if (roles.Contains(Roles.Admin))
             {
                 var types = typeof(Permissions).GetTypeInfo().DeclaredNestedTypes;
                 foreach (var type in types)
@@ -194,18 +188,65 @@ namespace Application.Services
             }
             return permissions.Distinct().ToList();
         }
-        private async Task SendConfirmationEmail(string? email, User? user)
+
+        public async Task<IdentityResult> RequestPasswordChangeAsync(string mail, ClaimsPrincipal user)
+        {
+            User currentUser;
+
+            if (user != null && user.Identity != null && user.Identity.IsAuthenticated)
+            {
+                var email = user.FindFirst(ClaimTypes.Email)?.Value;
+                if (email == null)
+                {
+                    return IdentityResult.Failed(new IdentityError { Description = "Email claim not found." });
+                }
+                currentUser = await _userManager.FindByEmailAsync(email);
+            }
+            else
+            {
+                currentUser = await _userManager.FindByEmailAsync(mail);
+                if (currentUser == null)
+                {
+                    return IdentityResult.Failed(new IdentityError { Description = "User not found." });
+                }
+            }
+            var otp = PasswordExtensions.GenerateOtp();
+            currentUser.OTP = otp;
+            await _userManager.UpdateAsync(currentUser);
+            await _emailService.SendEmailAsync(currentUser.Email, "Mã xác nhận đổi mật khẩu", $"Mã OTP của bạn là: {otp}", false);
+
+            return IdentityResult.Success;
+        }
+        public async Task<IdentityResult> ConfirmPasswordChangeAsync(ConfirmPasswordChangeRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "User not found." });
+            }
+            if (user.OTP != request.OtpCode)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Invalid OTP code." });
+            }
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+
+            if (result.Succeeded)
+            {
+                user.OTP = null;
+                await _userManager.UpdateAsync(user);
+            }
+
+            return result;
+        }
+
+        //==========================//
+        private async Task SendConfirmationEmail(string email, User user)
         {
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = $"http://localhost:5000/confirm-email?UserId={user.Id}&Token={token}";
             await _emailService.SendEmailAsync(email, "Xác nhận đăng ký tài khoản", $"Vui lòng ấn vào <a href='{confirmationLink}'>đây</a>;.", true);
         }
-        //SignUpConfirmationResponseViewModel
-        public class SignUpConfirmationResponseViewModel
-        {
-            public bool IsCreated { get; set; }
-        }
     }
-
 }
 

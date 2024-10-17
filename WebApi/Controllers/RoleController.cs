@@ -1,4 +1,3 @@
-using Application.DTOs;
 using AutoMapper;
 using Core.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +7,11 @@ using Core.Model;
 using Microsoft.EntityFrameworkCore;
 using Core.SeedWorks.Constants;
 using System.Reflection;
-using Application.Extensions;
+using Application.Extentions;
+using Application.DTOs.RoleDto;
+using Application.DTOs.AuthsDto;
+using Application.DTOs.RolesDto;
+using Application.DTOs.RoleDto.RolesDto;
 #nullable disable
 namespace WebApi.Controllers
 {

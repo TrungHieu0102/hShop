@@ -15,8 +15,6 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using WebApi.Authorization;
 using Core.ConfigOptions;
-using Application.Common.Shared;
-using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("hShop");
@@ -68,6 +66,8 @@ builder.Services.AddDbContext<HshopContext>(options =>
 builder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<HshopContext>()
     .AddDefaultTokenProviders();
+builder.Services.AddHttpContextAccessor(); // Để sử dụng IHttpContextAccessor
+
 //Email
 
 builder.Services.AddTransient<IEmailService, EmailService>();
@@ -101,6 +101,11 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddGoogle(options =>
+{
+    IConfigurationSection googleAuthSection =builder.Configuration.GetSection("Authentication:Google");
+    options.ClientId = googleAuthSection["ClientId"];
+    options.ClientSecret = googleAuthSection["ClientSecret"];
 })
 .AddJwtBearer(options =>
 {
@@ -116,7 +121,12 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
-
+//Cors
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllOrigins",
+           builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
@@ -141,9 +151,10 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty; 
     });
 }
-
+app.UseCors("AllowAllOrigins");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+

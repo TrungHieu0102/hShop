@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.DTOs
+namespace Application.DTOs.AuthsDto
 {
     public class SignUpDto
     {
@@ -19,7 +19,7 @@ namespace Application.DTOs
         [Required]
         public string Password { get; set; } = null!;
         [Required]
-        [Compare("Password", ErrorMessage="Password and Confirm Password do not match")]
+        [Compare("Password", ErrorMessage = "Password and Confirm Password do not match")]
         public string ComfirmPassword { get; set; } = null!;
     }
 }

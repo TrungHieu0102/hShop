@@ -1,4 +1,4 @@
-﻿using Application.DTOs;
+﻿using Application.DTOs.ProductsDto;
 using Core.Entities;
 using Core.Model;
 

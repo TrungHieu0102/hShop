@@ -1,4 +1,8 @@
-﻿using Application.DTOs;
+﻿using Application.DTOs.AuthsDto;
+using Application.DTOs.CategoriesDto;
+using Application.DTOs.ProductsDto;
+using Application.DTOs.RolesDto;
+using Application.DTOs.SuppliersDto;
 using AutoMapper;
 using Core.Entities;
 

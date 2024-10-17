@@ -1,5 +1,5 @@
 ﻿using Application.Constants;
-using Application.DTOs;
+using Application.DTOs.ProductsDto;
 using Application.Interfaces;
 using AutoMapper;
 using Core.Entities;

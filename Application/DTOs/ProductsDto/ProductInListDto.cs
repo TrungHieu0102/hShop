@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 #nullable disable
 
-namespace Application.DTOs
+namespace Application.DTOs.ProductsDto
 {
     public class ProductInListDto
     {

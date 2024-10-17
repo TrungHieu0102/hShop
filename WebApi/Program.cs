@@ -88,7 +88,8 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 // Auth
 builder.Services.AddScoped<IAuthService, AuthService>(); // Ensure AuthService has access to Identity services
-
+//User
+builder.Services.AddScoped<IUserService, UserService>();
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();

@@ -49,7 +49,7 @@ namespace Application.Services
             }
             if (!emailConfirmed)
             {
-                await SendConfirmationEmail(signInDto.Email, user);
+                await _emailService.SendConfirmationEmail(signInDto.Email, user);
                 return new AuthResponseDto { IsSuccess = false, Message = "Please confirm your email " };
             }
             var roles = await _userManager.GetRolesAsync(user);
@@ -118,7 +118,7 @@ namespace Application.Services
             {
                 await _roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
             }
-            await SendConfirmationEmail(signUpDto.Email, user);
+            await _emailService.SendConfirmationEmail(signUpDto.Email, user);
             return (true, string.Empty);
         }
         public async Task SignOutAsync()
@@ -241,12 +241,7 @@ namespace Application.Services
         }
 
         //==========================//
-        private async Task SendConfirmationEmail(string email, User user)
-        {
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = $"http://localhost:5000/confirm-email?UserId={user.Id}&Token={token}";
-            await _emailService.SendEmailAsync(email, "Xác nhận đăng ký tài khoản", $"Vui lòng ấn vào <a href='{confirmationLink}'>đây</a>;.", true);
-        }
+      
     }
 }
 

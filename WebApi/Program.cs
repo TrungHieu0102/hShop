@@ -15,6 +15,8 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using WebApi.Authorization;
 using Core.ConfigOptions;
+using CloudinaryDotNet;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("hShop");
@@ -96,7 +98,6 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 
 // JWT token
 builder.Services.Configure<JwtConfigOptions>(builder.Configuration.GetSection("Jwt"));
-
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -128,6 +129,19 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAllOrigins",
            builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
+
+//Cloudinary 
+var cloudinarySettings = builder.Configuration.GetSection("CloudinarySettings").Get<CloudinarySettings>();
+var account = new Account(
+       cloudinarySettings.CloudName,
+       cloudinarySettings.ApiKey,
+       cloudinarySettings.ApiSecret
+   ); 
+Cloudinary cloudinary = new Cloudinary(account);
+builder.Services.AddSingleton(cloudinary);
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+
+
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {

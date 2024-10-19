@@ -6,7 +6,7 @@
 *.userosscache
 *.sln.docstates
 *.code-workspace
-
+*.json
 # Build Folders (bin, obj, etc)
 bin/
 obj/

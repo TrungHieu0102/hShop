@@ -56,14 +56,15 @@ namespace WebApi.Controllers
             }
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(Guid id, [FromForm] CreateUpdateProductDto productDto)
+        public async Task<IActionResult> UpdateProduct(Guid id,[FromForm] CreateUpdateProductDto productDto)
         {
-            var result = await _productService.UpdateProductAsync(id, productDto);
+            var result = await _productService.UpdateProductWithImagesAsync(id, productDto);
             if (!result.IsSuccess)
             {
-                return NotFound(result.Message);
+                return BadRequest(result.Message);
             }
-            return Ok();
+
+            return Ok("Update successfully");
         }
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteProduct(Guid id)

@@ -6,7 +6,7 @@ public class Product
 {
     [Key]
     public Guid Id { get; set; }
-
+  
     [MaxLength(100)]
     [Required(ErrorMessage = "Product name is required.")]
     public string Name { get; set; } = string.Empty;
@@ -49,7 +49,9 @@ public class Product
     [ForeignKey(nameof(SupplierId))]
     public Supplier Supplier { get; set; }
 
-    // Giới hạn số lượng ảnh tối đa
     [MaxLength(10)]
     public ICollection<ProductImage> Images { get; set; }
+    [Timestamp]
+    public byte[] RowVersion { get; set; }
+
 }

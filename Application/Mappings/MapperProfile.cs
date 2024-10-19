@@ -7,22 +7,47 @@ using Application.DTOs.UsersDto;
 using AutoMapper;
 using Core.Entities;
 
-
 namespace Application.Mappings
 {
     public class MapperProfile : Profile
     {
         public MapperProfile()
         {
-            CreateMap<Product, ProductDto>().ReverseMap();
+            CreateMap<Product, ProductDto>()
+               .ForMember(dest => dest.Images, opt => opt
+             .MapFrom(src => src.Images.Select(img => new ProductImageDto
+             {
+                 ImageUrl = img.ImageUrl,
+                 IsPrimary = img.IsPrimary
+             })))
+             .ReverseMap();
+            CreateMap<CreateUpdateProductDto, Product>()
+               .ForMember(dest => dest.Images, opt => opt.Ignore())
+               .ReverseMap()
+               .ForMember(dest => dest.Images, opt => opt.Ignore());
+            CreateMap<Product, ProductInListDto>()
+             .ForMember(dest => dest.Images, opt => opt
+             .MapFrom(src => src.Images.Select(img => new ProductImageDto
+             {
+                 ImageUrl = img.ImageUrl,
+                 IsPrimary = img.IsPrimary
+             })))
+             .ReverseMap();
+
+            CreateMap<ProductImage, ProductImageDto>();
+
             CreateMap<Category, CategoryDto>().ReverseMap();
-            CreateMap<Supplier, SupplierDto>().ReverseMap();    
-            CreateMap<CreateUpdateProductDto, Product>().ReverseMap();  
             CreateMap<CreateUpdateCategoryDto, Category>().ReverseMap();
+
+            CreateMap<Supplier, SupplierDto>().ReverseMap();
+
             CreateMap<SignInDto, User>().ReverseMap();
-            CreateMap<RoleDto,Role>().ReverseMap(); 
+
+            CreateMap<RoleDto, Role>().ReverseMap();
+
             CreateMap<UserInformatioResponeDto, User>().ReverseMap();
             CreateMap<CreateUpdateUserDto, User>().ReverseMap();
+
         }
     }
 }

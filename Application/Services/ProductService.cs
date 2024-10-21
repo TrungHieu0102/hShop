@@ -1,13 +1,11 @@
 ﻿using Application.DTOs.ProductsDto;
+using Application.Extentions;
 using Application.Interfaces;
 using AutoMapper;
 using Core.Entities;
 using Core.Helpers;
 using Core.Interfaces;
 using Core.Model;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-
 namespace Application.Services
 {
     public class ProductService : IProductService
@@ -15,13 +13,14 @@ namespace Application.Services
         private readonly IUnitOfWorkBase _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IPhotoService _photoService;
+        private readonly ICacheService _cacheServices;
 
-        public ProductService(IUnitOfWorkBase unitOfWork, IMapper mapper, IPhotoService photoService)
+        public ProductService(IUnitOfWorkBase unitOfWork, IMapper mapper, IPhotoService photoService, ICacheService cacheServices)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _photoService = photoService;
-
+            _cacheServices = cacheServices;
         }
         public async Task<int> AddProductAsync(CreateUpdateProductDto productDto)
         {
@@ -59,42 +58,61 @@ namespace Application.Services
         }
         public async Task<Result<Product>> UpdateProductWithImagesAsync(Guid id, CreateUpdateProductDto productDto)
         {
-            var productUpdateResult = await UpdateProductAsync(id, productDto);
-            if (!productUpdateResult.IsSuccess)
+            try
             {
+                var productUpdateResult = await UpdateProductAsync(id, productDto);
+                if (!productUpdateResult.IsSuccess)
+                {
+                    return productUpdateResult;
+                }
+                if (productDto.Images != null && productDto.Images.Any())
+                {
+                    var imageUpdateResult = await _photoService.UpdateProductImagesAsync(id, productDto.Images);
+                    if (!imageUpdateResult.IsSuccess)
+                    {
+                        return new Result<Product> { IsSuccess = false, Message = "Failed to update product images." };
+                    }
+                }
                 return productUpdateResult;
             }
-            if (productDto.Images != null && productDto.Images.Any())
+            catch (Exception ex)
             {
-                var imageUpdateResult = await _photoService.UpdateProductImagesAsync(id, productDto.Images);
-                if (!imageUpdateResult.IsSuccess)
-                {
-                    return new Result<Product> { IsSuccess = false, Message = "Failed to update product images." };
-                }
+                return new Result<Product> { IsSuccess = false, Message = ex.Message };
             }
-            return productUpdateResult;
         }
 
         public async Task<Result<Product>> UpdateProductAsync(Guid id, CreateUpdateProductDto productDto)
         {
-            var product = await _unitOfWork.Products.GetByIdAsync(id);
-            if (product == null)
+            try
             {
-                return new Result<Product> { IsSuccess = false, Message = "Product not found." };
-            }
+                var product = await _unitOfWork.Products.GetByIdAsync(id);
+                if (product == null)
+                {
+                    return new Result<Product> { IsSuccess = false, Message = "Product not found." };
+                }
 
-            var slug = SlugHelper.GenerateSlug(productDto.Name);
-            if (await _unitOfWork.Products.IsSlugExits(slug))
+                var slug = SlugHelper.GenerateSlug(productDto.Name);
+                if (await _unitOfWork.Products.IsSlugExits(slug))
+                {
+                    return new Result<Product> { IsSuccess = false, Message = "Slug already exists." };
+                }
+                _mapper.Map(productDto, product);
+                product.Slug = slug;
+                var cachKey = $"Product_{id}";
+                var cache = await _cacheServices.GetCachedDataAsync<Product>(cachKey);
+                if (cache != null)
+                {
+                    await _cacheServices.RemoveCachedDataAsync(cachKey);
+                }
+                _unitOfWork.Products.Update(product);
+                await _unitOfWork.CompleteAsync();
+
+                return new Result<Product> { IsSuccess = true, Data = product };
+            }
+            catch (Exception ex)
             {
-                return new Result<Product> { IsSuccess = false, Message = "Slug already exists." };
+                return new Result<Product> { IsSuccess = false, Message = ex.Message };
             }
-            _mapper.Map(productDto, product);
-            product.Slug = slug;
-
-            _unitOfWork.Products.Update(product);
-            await _unitOfWork.CompleteAsync();
-
-            return new Result<Product> { IsSuccess = true, Data = product };
         }
         public async Task<bool> DeleteProductAsync(Guid id)
         {
@@ -109,10 +127,16 @@ namespace Application.Services
                 {
                     foreach (var image in product.Images)
                     {
-                        var publicId = ExtractPublicId(image.ImageUrl);
+                        var publicId = PhotoExtensions.ExtractPublicId(image.ImageUrl);
                         await _photoService.DeletePhotoAsync("product", publicId);
                         _unitOfWork.Images.Delete(image);
                     }
+                }
+                var cacheKey = $"Product_{id}";
+                var cache = await _cacheServices.GetCachedDataAsync<Product>(cacheKey);
+                if (cache != null) 
+                {
+                    await _cacheServices.RemoveCachedDataAsync(cacheKey);
                 }
                 _unitOfWork.Products.Delete(product);
                 var result = await _unitOfWork.CompleteAsync();
@@ -166,8 +190,19 @@ namespace Application.Services
         {
             try
             {
+                var cacheKey = $"Product_{id}";
+                var cacheResult = await _cacheServices.GetCachedDataAsync<ProductDto>(cacheKey);
+                if (cacheResult != null)
+                {
+                    return new Result<ProductDto>
+                    {
+                        IsSuccess = true,
+                        Data = cacheResult
+                    };
+                }
                 var product = await _unitOfWork.Products.GetProductWithImagesByIdAsync(id);
-                var productDto = _mapper.Map<ProductDto>(product);
+                var productDto = _mapper.Map<ProductDto>(product);  
+                await _cacheServices.SetCachedDataAsync(cacheKey, productDto);
                 return new Result<ProductDto>
                 {
                     IsSuccess = true,
@@ -199,24 +234,7 @@ namespace Application.Services
             };
         }
 
-        public string ExtractPublicId(string imageUrl)
-        {
-            if (string.IsNullOrEmpty(imageUrl))
-            {
-                throw new ArgumentException("Image URL cannot be null or empty.", nameof(imageUrl));
-            }
-
-            var uri = new Uri(imageUrl);
-            var segments = uri.Segments;
-            if (segments.Length < 3)
-            {
-                throw new InvalidOperationException("Invalid image URL format.");
-            }
-            var publicIdWithVersion = segments[segments.Length - 1]; // phần cuối cùng là tên file
-            var publicId = Path.GetFileNameWithoutExtension(publicIdWithVersion);
-
-            return publicId;
-        }
+      
 
     }
 }

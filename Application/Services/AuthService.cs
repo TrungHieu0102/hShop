@@ -234,6 +234,8 @@ namespace Application.Services
             if (result.Succeeded)
             {
                 user.OTP = null;
+                user.RefreshToken = null;
+                user.RefreshTokenExpiryTime = null;
                 await _userManager.UpdateAsync(user);
             }
 

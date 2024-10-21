@@ -17,6 +17,7 @@ using WebApi.Authorization;
 using Core.ConfigOptions;
 using CloudinaryDotNet;
 using Microsoft.Extensions.Configuration;
+using Application.Services.Cache;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("hShop");
@@ -140,8 +141,12 @@ var account = new Account(
 Cloudinary cloudinary = new Cloudinary(account);
 builder.Services.AddSingleton(cloudinary);
 builder.Services.AddScoped<IPhotoService, PhotoService>();
-
-
+// Redis config
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+});
+builder.Services.AddScoped<ICacheService, RedisCacheService>(); 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {

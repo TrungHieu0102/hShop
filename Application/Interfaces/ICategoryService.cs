@@ -12,7 +12,7 @@ namespace Application.Interfaces
     public interface ICategoryService
     {
         Task<Result<CategoryDto>> GetByIdAsync(Guid id); 
-        Task<PagedResult<CategoryDto>> GetAllAsync(int page, int pageSize, string search, bool IsDecsending = false);
+        Task<PagedResult<CategoryInListDto>> GetAllAsync(int page, int pageSize, string search, bool IsDecsending = false);
         Task<int>AddCategoryAsync(CreateUpdateCategoryDto categoryDto);
         Task<Result<Category>> UpdateCategoryAsync(Guid id, CreateUpdateCategoryDto categoryDto);
         Task<bool> DeleteCategoryAsync(Guid id);  

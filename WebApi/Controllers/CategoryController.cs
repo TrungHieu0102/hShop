@@ -33,7 +33,7 @@ public class CategoryController : ControllerBase
         return Ok(result.Data);
     }
     [HttpPost]
-    public async Task<IActionResult> AddCategory([FromBody] CreateUpdateCategoryDto categoryDto)
+    public async Task<IActionResult> AddCategory([FromForm] CreateUpdateCategoryDto categoryDto)
     {
        
         try
@@ -56,7 +56,7 @@ public class CategoryController : ControllerBase
     }
     [HttpPut]
     [Route("{id}")]
-    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CreateUpdateCategoryDto categoryDto)
+    public async Task<IActionResult> UpdateCategory(Guid id, [FromForm] CreateUpdateCategoryDto categoryDto)
     {
       
         var result = await _categoryService.UpdateCategoryAsync(id, categoryDto);

@@ -95,6 +95,8 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IAuthService, AuthService>(); // Ensure AuthService has access to Identity services
 //User
 builder.Services.AddScoped<IUserService, UserService>();
+//Cart
+builder.Services.AddScoped<ICartService, CartService>();
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();

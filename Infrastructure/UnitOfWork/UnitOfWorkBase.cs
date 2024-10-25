@@ -2,6 +2,7 @@
 using Core.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Data.Context;
+using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore.Storage;
 
 
@@ -14,6 +15,7 @@ namespace Infrastructure.UnitOfWork
         public ICategoryRepository Categories { get; set; }
         public ISupplierRepository Suppliers { get; set; }
         public IImageRepository Images { get; set; }
+        public ICartRepository Carts { get; set; }
 
         public UnitOfWorkBase(HshopContext context, IMapper mapper)
         {
@@ -22,6 +24,7 @@ namespace Infrastructure.UnitOfWork
             Categories = new CategoryRepository(_context, mapper);
             Suppliers = new SupplierRepository(_context, mapper);
             Images = new ImageRepository(_context);
+            Carts = new CartRepository(_context);
         }
 
         public async Task<int> CompleteAsync()

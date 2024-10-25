@@ -4,7 +4,6 @@ using Core.Interfaces;
 using Infrastructure.Data.Context;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Infrastructure.Data
 {

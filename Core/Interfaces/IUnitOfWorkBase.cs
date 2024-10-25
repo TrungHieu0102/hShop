@@ -9,6 +9,7 @@ namespace Core.Interfaces
         ICategoryRepository Categories { get; }
         ISupplierRepository Suppliers { get; }  
         IImageRepository Images { get; }
+        ICartRepository Carts { get; }
         Task<int> CompleteAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

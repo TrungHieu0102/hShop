@@ -15,7 +15,8 @@ namespace Application.DTOs.ProductsDto
 
         [MaxLength(255, ErrorMessage = "Description cannot exceed 255 characters.")]
         public string Description { get; set; } = string.Empty;
-
+        [Range(0,10000, ErrorMessage = "Price must be between 0 and 10000.")]
+        public int ? Quantity { get; set; }
         [Required(ErrorMessage = "Unit is required.")]
         [MaxLength(20, ErrorMessage = "Unit cannot exceed 20 characters.")]
         public string Unit { get; set; } = string.Empty;

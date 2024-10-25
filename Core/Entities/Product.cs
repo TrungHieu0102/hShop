@@ -30,13 +30,14 @@ public class Product
     [Column(TypeName = "decimal(18, 2)")]
     [Range(0, 100, ErrorMessage = "Discount must be between 0 and 100.")]
     public decimal? Discount { get; set; }
-
+    [Range(0,10000, ErrorMessage = "Price must be between 0 and 10000.")]
+    public int? Quantity { get; set; }
     [Required]
     public DateTime DateCreated { get; set; } = DateTime.Now;
 
     [Range(0, int.MaxValue, ErrorMessage = "View count must be a positive value.")]
     public int? ViewCount { get; set; }
-
+    
     [Required]
     public Guid CategoryId { get; set; }
 

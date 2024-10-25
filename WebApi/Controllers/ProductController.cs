@@ -3,6 +3,7 @@ using Application.DTOs.ProductsDto;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using WebApi.Filters;
 
 namespace WebApi.Controllers
@@ -21,6 +22,10 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
         {
             var pagedResult = await _productService.GetAllProductsAsync(page, pageSize, search, IsDecsending);
+            if (pagedResult.IsSuccess == false)
+            {
+                return BadRequest();
+            }
             return Ok(pagedResult);
         }
         [HttpGet("{id}")]
@@ -40,7 +45,7 @@ namespace WebApi.Controllers
             try
             {
                 var result = await _productService.AddProductAsync(productDto);
-                if (result == 0)
+                if (!result)
                 {
                     return StatusCode(500, "Failed to create product");
                 }
@@ -56,7 +61,7 @@ namespace WebApi.Controllers
             }
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(Guid id,[FromForm] CreateUpdateProductDto productDto)
+        public async Task<IActionResult> UpdateProduct(Guid id, [FromForm] CreateUpdateProductDto productDto)
         {
             var result = await _productService.UpdateProductWithImagesAsync(id, productDto);
             if (!result.IsSuccess)
@@ -92,6 +97,10 @@ namespace WebApi.Controllers
         public async Task<IActionResult> SearchProductByName([FromQuery] string name, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool IsDecsending = false)
         {
             var pagedResult = await _productService.SearchProductByNameAsync(name, page, pageSize, IsDecsending);
+            if (pagedResult.IsSuccess == false)
+            {
+                return BadRequest();
+            }
             return Ok(pagedResult);
         }
     }

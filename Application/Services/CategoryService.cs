@@ -6,6 +6,7 @@ using Core.Entities;
 using Core.Helpers;
 using Core.Interfaces;
 using Core.Model;
+using Microsoft.Extensions.Logging;
 namespace Application.Services
 {
     public class CategoryService : ICategoryService
@@ -14,75 +15,126 @@ namespace Application.Services
         private readonly IMapper _mapper;
         private readonly ICacheService _cacheServices;
         private readonly IPhotoService _photoService;
-        public CategoryService(IUnitOfWorkBase unitOfWork, IMapper mapper, ICacheService cacheService, IPhotoService photoService) => (_unitOfWork, _mapper, _cacheServices, _photoService) = (unitOfWork, mapper, cacheService, photoService);
-
-        public async Task<int> AddCategoryAsync(CreateUpdateCategoryDto categoryDto)
+        private readonly ILogger<ICategoryService> _logger;
+        public CategoryService (IUnitOfWorkBase unitOfWork, IMapper mapper, ICacheService cacheService, IPhotoService photoService, ILogger<ICategoryService> logger) => (_unitOfWork, _mapper, _cacheServices, _photoService, _logger) = (unitOfWork, mapper, cacheService, photoService, logger);
+        public async Task<Result<CategoryDto>> AddCategoryAsync(CreateUpdateCategoryDto categoryDto)
         {
-            var slug = SlugHelper.GenerateSlug(categoryDto.Name);
-            if (await _unitOfWork.Categories.IsSlugExits(slug))
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                throw new InvalidOperationException("Slug already exists.");
-            }
-            var category = _mapper.Map<Category>(categoryDto);
-            category.Slug = slug;
-            category.Id = Guid.NewGuid();
-            if (categoryDto.Images != null)
-            {
-                var uploadResult =  await _photoService.AddPhotoAsync(categoryDto.Images, "categories");
-                category.PictureUrl = uploadResult.SecureUrl.ToString();
+                var slug = SlugHelper.GenerateSlug(categoryDto.Name);
+                if (await _unitOfWork.Categories.IsSlugExits(slug))
+                {
+                    throw new InvalidOperationException("Slug already exists.");
+                }
+                var category = _mapper.Map<Category>(categoryDto);
+                category.Slug = slug;
+                category.Id = Guid.NewGuid();
+                if (categoryDto.Images != null)
+                {
+                    var uploadResult = await _photoService.AddPhotoAsync(categoryDto.Images, "categories");
+                    category.PictureUrl = uploadResult.SecureUrl.ToString();
+
+                }
+                _unitOfWork.Categories.Add(category);
+                var result = await _unitOfWork.CompleteAsync();
+                if (result == 0)
+                {
+                    await transaction.RollbackAsync();
+                    return new Result<CategoryDto>
+                    {
+                        IsSuccess = false,
+                        Message = "Failed to add category."
+                    };
+                }
+                await transaction.CommitAsync();
+                return new Result<CategoryDto>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<CategoryDto>(category)
+                };
 
             }
-            _unitOfWork.Categories.Add(category);
-            return await _unitOfWork.CompleteAsync();
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new Result<CategoryDto>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
         }
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var category = await _unitOfWork.Categories.GetByIdAsync(id);
+                if (category == null)
+                {
+                    return false;
+                }
                 if (category.PictureUrl != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(category.PictureUrl);
-                    await _photoService.DeletePhotoAsync("categories", publicId);
+                    await _photoService.DeletePhotoAsync("categories", $"categories/{publicId}");
                 }
                 _unitOfWork.Categories.Delete(category);
-                var cacheKey = $"Category_{id}";
-                var cache = await _cacheServices.GetCachedDataAsync<Category>(cacheKey);
-                if (cache != null)
-                {
-                    await _cacheServices.RemoveCachedDataAsync(cacheKey);
-                }
-                var ex = new Exception();
                 var result = await _unitOfWork.CompleteAsync();
-                return result > 0;
+                if (result == 0)
+                {
+                    await transaction.RollbackAsync();
+                    return false;
+                }
+                await transaction.CommitAsync();
+                return true;
             }
-            catch (InvalidOperationException)
+            catch (Exception)
             {
+                await transaction.RollbackAsync();
                 return false;
             }
         }
         public async Task<PagedResult<CategoryInListDto>> GetAllAsync(int page, int pageSize, string search, bool IsDecsending = false)
         {
-            var categories = await _unitOfWork.Categories.GetAllAsync();
 
-            if (!string.IsNullOrEmpty(search))
+            try
             {
-                categories = categories.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+                var categories = await _unitOfWork.Categories.GetAllAsync();
+
+                if (!string.IsNullOrEmpty(search))
+                {
+                    categories = categories.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+                }
+
+                categories = IsDecsending ? categories.OrderByDescending(p => p.Name) : categories.OrderBy(p => p.Name);
+
+                var totalRows = categories.Count();
+
+                var pagedCategories = categories.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+                return new PagedResult<CategoryInListDto>
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    RowCount = totalRows,
+                    Results = _mapper.Map<IEnumerable<CategoryInListDto>>(pagedCategories),
+                    IsSuccess = true
+                };
             }
-
-            categories = IsDecsending ? categories.OrderByDescending(p => p.Name) : categories.OrderBy(p => p.Name);
-
-            var totalRows = categories.Count();
-
-            var pagedCategories = categories.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-
-            return new PagedResult<CategoryInListDto>
+            catch(Exception ex)
             {
-                CurrentPage = page,
-                PageSize = pageSize,
-                RowCount = totalRows,
-                Results = _mapper.Map<IEnumerable<CategoryInListDto>>(pagedCategories)
-            };
+                _logger.LogError(message: ex.Message);   
+                return new PagedResult<CategoryInListDto>
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    RowCount = 0,
+                    Results = [],
+                    IsSuccess = false
+                };
+            }
         }
         public async Task<Result<CategoryDto>> GetByIdAsync(Guid id)
         {
@@ -119,9 +171,10 @@ namespace Application.Services
                 };
             }
         }
-
         public async Task<Result<Category>> UpdateCategoryAsync(Guid id, CreateUpdateCategoryDto categoryDto)
         {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+
             try
             {
                 var category = await _unitOfWork.Categories.GetByIdAsync(id);
@@ -134,10 +187,10 @@ namespace Application.Services
                         Message = "Slug already exists."
                     };
                 }
-                if(category.PictureUrl != null)
+                if (category.PictureUrl != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(category.PictureUrl);
-                    await _photoService.DeletePhotoAsync("categories", publicId);                   
+                    await _photoService.DeletePhotoAsync("categories",publicId);
                 }
                 if (categoryDto.Images != null)
                 {
@@ -155,6 +208,8 @@ namespace Application.Services
                     await _cacheServices.RemoveCachedDataAsync(cacheKey);
                 }
                 await _unitOfWork.CompleteAsync();
+                await transaction.CommitAsync();
+
                 return new Result<Category>
                 {
                     IsSuccess = true
@@ -162,6 +217,7 @@ namespace Application.Services
             }
             catch (InvalidOperationException ex)
             {
+                await transaction.RollbackAsync();
                 return new Result<Category>
                 {
                     IsSuccess = false,

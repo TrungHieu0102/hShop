@@ -8,7 +8,7 @@ namespace Application.Interfaces
     public interface IProductService
     {
         Task<Result<ProductDto>> GetProductByIdAsync(Guid id); 
-        Task<int> AddProductAsync(CreateUpdateProductDto productDto);
+        Task<bool> AddProductAsync(CreateUpdateProductDto productDto);
         Task<Result<Product>> UpdateProductWithImagesAsync(Guid id, CreateUpdateProductDto productDto);
         Task<bool> DeleteProductAsync(Guid id);
         Task<PagedResult<ProductInListDto>> GetAllProductsAsync(int page, int pageSize, string search, bool IsDecsending);

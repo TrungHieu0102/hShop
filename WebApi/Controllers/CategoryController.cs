@@ -13,12 +13,16 @@ public class CategoryController : ControllerBase
     private readonly ICategoryService _categoryService;
     public CategoryController(ICategoryService categoryService)
     {
-        _categoryService= categoryService;
+        _categoryService = categoryService;
     }
     [HttpGet]
     public async Task<IActionResult> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
     {
         var pagedResult = await _categoryService.GetAllAsync(page, pageSize, search, IsDecsending);
+        if(pagedResult.IsSuccess == false)
+        {
+            return BadRequest();
+        }
         return Ok(pagedResult);
     }
     [HttpGet]
@@ -35,30 +39,17 @@ public class CategoryController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddCategory([FromForm] CreateUpdateCategoryDto categoryDto)
     {
-       
-        try
+        var result = await _categoryService.AddCategoryAsync(categoryDto);
+        if (!result.IsSuccess)
         {
-            var resutl = await _categoryService.AddCategoryAsync(categoryDto);
-            if (resutl == 0)
-            {
-                return StatusCode(500, "Failed to create category");
-            }
-            return Created();
+            return BadRequest(result.Message);
         }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = ex.Message });
-        }
+        return Created();
     }
     [HttpPut]
     [Route("{id}")]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromForm] CreateUpdateCategoryDto categoryDto)
     {
-      
         var result = await _categoryService.UpdateCategoryAsync(id, categoryDto);
         if (!result.IsSuccess)
         {

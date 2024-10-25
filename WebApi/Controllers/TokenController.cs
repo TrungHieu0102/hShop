@@ -4,11 +4,14 @@ using Core.Model.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Filters;
 #nullable disable
 namespace WebApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [ValidateModel]
+
     public class TokenController : ControllerBase
     {
         private readonly ITokenService _tokenService;

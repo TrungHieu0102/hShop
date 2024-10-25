@@ -41,6 +41,8 @@ namespace Application.Mappings
             CreateMap<Category, CategoryInListDto>().ReverseMap();
 
             CreateMap<Supplier, SupplierDto>().ReverseMap();
+            CreateMap<CreateUpdateSupplierDto, Supplier>().ReverseMap();    
+            CreateMap<Supplier, SupplierInListDto>().ReverseMap();  
 
             CreateMap<SignInDto, User>().ReverseMap();
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Bogus;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -40,6 +41,17 @@ namespace Core.Helpers
             }
 
             return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        }
+        public static string GenerateVietnamPhoneNumber(Faker f)
+        {
+            // Chọn một trong các đầu số di động tại Việt Nam
+            var prefixes = new[] { "091", "092", "093", "094", "095", "096", "097", "098", "099" };
+            var prefix = f.PickRandom(prefixes);
+
+            // Tạo 7 ký tự ngẫu nhiên còn lại
+            var number = f.Random.Number(1000000, 9999999).ToString();
+
+            return $"{prefix}{number}";
         }
     }
 }

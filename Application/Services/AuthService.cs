@@ -57,7 +57,7 @@ namespace Application.Services
             var permission = await GetPermissionAsync(user.Id.ToString());
             var authClaims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new(JwtRegisteredClaimNames.Email, user.Email),
                     new Claim(UserClaims.Id, user.Id.ToString()),
                     new Claim(ClaimTypes.NameIdentifier, user.Email),
                     new Claim(ClaimTypes.Name, user.UserName),
@@ -242,7 +242,6 @@ namespace Application.Services
             return result;
         }
 
-        //==========================//
       
     }
 }

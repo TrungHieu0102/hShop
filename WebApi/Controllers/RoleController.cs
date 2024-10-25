@@ -17,6 +17,8 @@ namespace WebApi.Controllers
 {
     [Route("[controller]")]
     [ApiController]
+    [ValidateModel]
+
     public class RoleController : ControllerBase
     {
         private readonly RoleManager<Role> _roleManager;

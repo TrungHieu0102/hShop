@@ -28,8 +28,8 @@ if (string.IsNullOrEmpty(jwtKey))
 {
     throw new InvalidOperationException("JWT Key is not configured.");
 }
-
 // Add services to the container.
+builder.Services.AddLogging();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -89,6 +89,8 @@ builder.Services.AddScoped<IProductService, ProductService>();
 // Category
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+//Supplier
+builder.Services.AddScoped<ISupplierService, SupplierService>();
 // Auth
 builder.Services.AddScoped<IAuthService, AuthService>(); // Ensure AuthService has access to Identity services
 //User

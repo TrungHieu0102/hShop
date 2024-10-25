@@ -13,7 +13,7 @@ namespace Application.Interfaces
     {
         Task<Result<CategoryDto>> GetByIdAsync(Guid id); 
         Task<PagedResult<CategoryInListDto>> GetAllAsync(int page, int pageSize, string search, bool IsDecsending = false);
-        Task<int>AddCategoryAsync(CreateUpdateCategoryDto categoryDto);
+        Task<Result<CategoryDto>> AddCategoryAsync(CreateUpdateCategoryDto categoryDto);
         Task<Result<Category>> UpdateCategoryAsync(Guid id, CreateUpdateCategoryDto categoryDto);
         Task<bool> DeleteCategoryAsync(Guid id);  
     }

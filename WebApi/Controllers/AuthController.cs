@@ -3,11 +3,14 @@ using Application.Interfaces;
 using Application.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Filters;
 
 namespace WebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [ValidateModel]
+
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

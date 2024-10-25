@@ -18,6 +18,7 @@ namespace Application.DTOs.ProductsDto
         public string? Unit { get; set; }
         public ICollection<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();
         public decimal? Discount { get; set; }
+        public int ?Quantity { get; set; }
         public DateTime DateCreated { get; set; }
         public int ?ViewCount { get; set; }
 

@@ -12,6 +12,7 @@ namespace Application.DTOs.ProductsDto
         public decimal Price { get; set; }
         public string Unit { get; set; } = string.Empty;
         public decimal? Discount { get; set; }
+        public int? Quantity { get; set; }
         public DateTime DateCreated { get; set; }
         public int? ViewCount { get; set; }
         public Guid CategoryId { get; set; }

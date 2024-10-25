@@ -88,7 +88,7 @@ namespace WebApi.Controllers
         public async Task<IActionResult> RequestPasswordChange( string mail)
         {
             var result = await _authService.RequestPasswordChangeAsync(mail, User);
-
+                   
             if (!result.Succeeded)
             {
                 return BadRequest(result.Errors.First().Description);

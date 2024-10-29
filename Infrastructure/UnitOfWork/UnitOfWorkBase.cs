@@ -16,6 +16,7 @@ namespace Infrastructure.UnitOfWork
         public ISupplierRepository Suppliers { get; set; }
         public IImageRepository Images { get; set; }
         public ICartRepository Carts { get; set; }
+        public IOrderRepository Orders { get; set; }
 
         public UnitOfWorkBase(HshopContext context, IMapper mapper)
         {
@@ -25,6 +26,7 @@ namespace Infrastructure.UnitOfWork
             Suppliers = new SupplierRepository(_context, mapper);
             Images = new ImageRepository(_context);
             Carts = new CartRepository(_context);
+            Orders = new OrderRepository(_context);
         }
 
         public async Task<int> CompleteAsync()

@@ -97,6 +97,8 @@ builder.Services.AddScoped<IAuthService, AuthService>(); // Ensure AuthService h
 builder.Services.AddScoped<IUserService, UserService>();
 //Cart
 builder.Services.AddScoped<ICartService, CartService>();
+//Order
+builder.Services.AddScoped<IOrderSevice, OrderService>();
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();

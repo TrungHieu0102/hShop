@@ -8,46 +8,40 @@ using WebApi.Filters;
 namespace WebApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/[controller]/{id:guid}")]
     [ValidateModel]
 
-    public class UserController : ControllerBase
+    public class UserController(IUserService userService, IConfiguration configuration) : ControllerBase
     {
-        private readonly IUserService _userService;
-        private readonly IConfiguration _configuration;
-        public UserController(IUserService userService, IConfiguration configuration)
-        {
-            _userService = userService;
-            _configuration = configuration;
-        }
-        [HttpGet("{id}")]
+
+        [HttpGet()]
         public async Task<IActionResult> GetUserInformation(Guid id)
         {
-            var result = await _userService.GetInformationByID(id);
+            var result = await userService.GetInformationByID(id);
             if (!result.IsSuccess)
             {
                 return NotFound(result.Message);
             }
             return Ok(result.Data);
         }
-        [HttpDelete("{id}")]
+        [HttpDelete()]
         [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> DeleteUser(Guid id)
         {
-            var result = await _userService.DeleteUserById(id);
+            var result = await userService.DeleteUserById(id);
             if (!result)
             {
                 return NotFound("User not found");
             }
             return Ok("User deleted successfully");
         }
-        [HttpPut("{id}")]
+        [HttpPut()]
         [Authorize]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] CreateUpdateUserDto requestUser)
         {
             try
             {
-                var result = await _userService.UpdateUserAsync(id, requestUser);   
+                var result = await userService.UpdateUserAsync(id, requestUser);   
                 if(!result.IsSuccess)
                 {
                     return BadRequest(result.Message);

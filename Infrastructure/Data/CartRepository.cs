@@ -35,9 +35,9 @@ namespace Infrastructure.Data
             _context.CartItems.Add(cartItem);
             await _context.SaveChangesAsync();
         }
-        public async Task RemoveCartItemAsync(Guid cartItemId)
+        public async Task RemoveCartItemAsync(CartItem cartItem)
         {
-            var cartItem = await _context.CartItems.FindAsync(cartItemId);
+           
             if (cartItem != null)
             {
                 _context.CartItems.Remove(cartItem);
@@ -62,5 +62,22 @@ namespace Infrastructure.Data
             await _context.SaveChangesAsync();
         }
 
+        public async Task<Cart?> GetCartWithItemsAsync(Guid userId)
+        {
+            return await _context.Carts
+                .Include(c => c.Items)  
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+        }
+
+        public async Task<CartItem?> GetCartItemAsync(Guid cartId, Guid productId)
+        {
+            var cartItem =  await _context.CartItems.FirstOrDefaultAsync(c => c.CartId == cartId && c.ProductId == productId);
+            if (cartItem == null)
+            {
+                return null;
+            }
+
+            return cartItem;
+        }
     }
 }

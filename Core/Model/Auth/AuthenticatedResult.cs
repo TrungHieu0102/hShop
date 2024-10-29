@@ -9,6 +9,6 @@ namespace Core.Model.Auth
     public class AuthenticatedResult
     {
         public required string AccessToken { get; set; }
-        public required string RefreshToken { get; set; }
+        // public required string RefreshToken { get; set; }
     }
 }

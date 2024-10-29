@@ -11,27 +11,22 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [ValidateModel]
-    public class ProductsController : ControllerBase
+    public class ProductsController(IProductService productService) : ControllerBase
     {
-        private readonly IProductService _productService;
-        public ProductsController(IProductService productService)
-        {
-            _productService = productService;
-        }
         [HttpGet]
         public async Task<IActionResult> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
         {
-            var pagedResult = await _productService.GetAllProductsAsync(page, pageSize, search, IsDecsending);
+            var pagedResult = await productService.GetAllProductsAsync(page, pageSize, search, IsDecsending);
             if (pagedResult.IsSuccess == false)
             {
                 return BadRequest();
             }
             return Ok(pagedResult);
         }
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetProductById(Guid id)
         {
-            var result = await _productService.GetProductByIdAsync(id);
+            var result = await productService.GetProductByIdAsync(id);
             if (!result.IsSuccess)
             {
                 return NotFound(result.Message);
@@ -44,12 +39,8 @@ namespace WebApi.Controllers
         {
             try
             {
-                var result = await _productService.AddProductAsync(productDto);
-                if (!result)
-                {
-                    return StatusCode(500, "Failed to create product");
-                }
-                return StatusCode(201, new { message = "Product created successfully", productId = result });
+                var result = await productService.AddProductAsync(productDto);
+                return !result.IsSuccess ? StatusCode(400, result.Message) : StatusCode(201, new { message = "Product created successfully", productId = result });
             }
             catch (InvalidOperationException ex)
             {
@@ -60,10 +51,10 @@ namespace WebApi.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromForm] CreateUpdateProductDto productDto)
         {
-            var result = await _productService.UpdateProductWithImagesAsync(id, productDto);
+            var result = await productService.UpdateProductWithImagesAsync(id, productDto);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -71,32 +62,32 @@ namespace WebApi.Controllers
 
             return Ok("Update successfully");
         }
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<ActionResult> DeleteProduct(Guid id)
         {
-            var product = await _productService.GetProductByIdAsync(id);
+            var product = await productService.GetProductByIdAsync(id);
             if (product == null)
             {
                 return NotFound();
             }
-            if (!await _productService.DeleteProductAsync(id))
+            if (!await productService.DeleteProductAsync(id))
             {
                 return BadRequest();
             }
             return NoContent();
         }
-        [HttpGet("category/{categoryId}")]
+        [HttpGet("category/{categoryId:guid}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetProductByCategory(Guid categoryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool IsDecsending = false)
         {
-            var pagedResult = await _productService.GetProductByCategoryAsync(categoryId, page, pageSize, IsDecsending);
+            var pagedResult = await productService.GetProductByCategoryAsync(categoryId, page, pageSize, IsDecsending);
             return Ok(pagedResult);
         }
         [HttpGet("search")]
         [AllowAnonymous]
         public async Task<IActionResult> SearchProductByName([FromQuery] string name, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool IsDecsending = false)
         {
-            var pagedResult = await _productService.SearchProductByNameAsync(name, page, pageSize, IsDecsending);
+            var pagedResult = await productService.SearchProductByNameAsync(name, page, pageSize, IsDecsending);
             if (pagedResult.IsSuccess == false)
             {
                 return BadRequest();

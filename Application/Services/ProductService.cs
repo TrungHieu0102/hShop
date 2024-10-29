@@ -26,22 +26,26 @@ namespace Application.Services
             _cacheServices = cacheServices;
             _logger = logger;
         }
-        public async Task<bool> AddProductAsync(CreateUpdateProductDto productDto)
+        public async Task<Result<Product>> AddProductAsync(CreateUpdateProductDto productDto)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var slug = SlugHelper.GenerateSlug(productDto.Name);
                 if (await _unitOfWork.Products.IsSlugExits(slug))
                 {
-                    throw new InvalidOperationException("Slug already exists.");
+                    return new Result<Product>()
+                    {
+                        IsSuccess = false,
+                        Message = $"This {slug}  slug already exists!",
+                    };
                 }
 
                 var product = _mapper.Map<Product>(productDto);
                 product.Slug = slug;
                 product.Id = Guid.NewGuid();
                 product.Images = new List<ProductImage>();
-                if (productDto.Images != null && productDto.Images.Any())
+                if (productDto.Images.Count > 0)
                 {
                     foreach (var image in productDto.Images)
                     {
@@ -63,18 +67,25 @@ namespace Application.Services
                 _unitOfWork.Products.Add(product);
                 await _unitOfWork.CompleteAsync();
                 await transaction.CommitAsync();
-                return true;
+                return new Result<Product>()
+                {
+                    IsSuccess = true,
+                };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 await transaction.RollbackAsync();
-                return false;
+                return new Result<Product>()
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
         public async Task<Result<Product>> UpdateProductWithImagesAsync(Guid id, CreateUpdateProductDto productDto)
         {
-            using var trasaction = await _unitOfWork.BeginTransactionAsync();
+            await using var trasaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var productUpdateResult = await UpdateProductAsync(id, productDto);
@@ -82,7 +93,7 @@ namespace Application.Services
                 {
                     return productUpdateResult;
                 }
-                if (productDto.Images != null && productDto.Images.Any())
+                if (productDto.Images.Count != 0)
                 {
                     var imageUpdateResult = await _photoService.UpdateProductImagesAsync(id, productDto.Images);
                     if (!imageUpdateResult.IsSuccess)
@@ -134,7 +145,7 @@ namespace Application.Services
         }
         public async Task<bool> DeleteProductAsync(Guid id)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+           await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var product = await _unitOfWork.Products.GetProductWithImagesByIdAsync(id);
@@ -175,19 +186,15 @@ namespace Application.Services
             {
                 var productsQuery = await _unitOfWork.Products.GetProductsWithImagesAsync();
 
-                // Áp dụng lọc tìm kiếm
                 if (!string.IsNullOrEmpty(search))
                 {
                     productsQuery = productsQuery.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
                 }
 
-                // Áp dụng sắp xếp
                 productsQuery = IsDecsending ? productsQuery.OrderByDescending(p => p.Name) : productsQuery.OrderBy(p => p.Name);
 
-                // Tính tổng số hàng
                 var totalRows =  productsQuery.Count();
 
-                // Phân trang và lấy kết quả
                 var pagedProducts = productsQuery
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)

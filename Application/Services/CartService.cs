@@ -19,7 +19,7 @@
 
         public async Task<Result<Cart>> AddToCartAsync(Guid userId, Guid productId, int quantity)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var product = await _unitOfWork.Products.GetByIdAsync(productId);
@@ -32,17 +32,18 @@
                     };
                 }
 
-                var cart = await _unitOfWork.Carts.GetCart(userId);
+                var cart = await _unitOfWork.Carts.GetCartWithItemsAsync(userId);
                 if (cart == null)
                 {
                     cart = new Cart { UserId = userId };
                     await _unitOfWork.Carts.CreateCartAsync(cart);
                 }
-
-                var cartItem = cart.Items.FirstOrDefault(x => x.ProductId == productId);
+                var cartItem = await _unitOfWork.Carts.GetCartItemAsync(cart.Id, productId);
                 if (cartItem != null)
                 {
+                    var productInItem = await _unitOfWork.Products.GetByIdAsync(productId);
                     cartItem.Quantity += quantity;
+                    cartItem.UnitPrice += productInItem.Price * quantity;
                     await _unitOfWork.Carts.UpdateCartItemAsync(cartItem);
                 }
                 else
@@ -52,7 +53,9 @@
                     {
                         CartId = cart.Id,
                         ProductId = productId,
-                        Quantity = quantity
+                        Quantity = quantity,
+                        UnitPrice = product.Price * quantity
+                        
                     };
                     await _unitOfWork.Carts.AddCartItemAsync(newCartItem);
                 }
@@ -71,7 +74,8 @@
                 return new Result<Cart>()
                 {
                     IsSuccess = false,
-                    Message = e.Message
+                    Message = e.Message,
+                    
                 };
             }
 
@@ -79,10 +83,10 @@
         
         public async Task<Result<Cart>> RemoveFromCartAsync(Guid userId, Guid productId)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var cart = await _unitOfWork.Carts.GetCart(userId);
+                var cart = await _unitOfWork.Carts.GetCartWithItemsAsync(userId);
                 if (cart == null)
                 {
                     return new Result<Cart>()
@@ -91,7 +95,21 @@
                         Message = "Cart not found"
                     };
                 }
-                var cartItem = cart.Items.FirstOrDefault(x => x.ProductId == productId);
+
+                if (cart.Items.Count == 1 && cart.Items.Any(x => x.ProductId == productId))
+                {
+                    await _unitOfWork.Carts.ClearCartAsync(cart.Id);
+                    await transaction.CommitAsync();
+                    return new Result<Cart>()
+                    {
+                        IsSuccess = true,
+                        Message = "Cart cleared successfully"
+                    };
+                }
+
+                var cartItem = cart.Items
+                    .FirstOrDefault(x => x.CartId == cart.Id && x.ProductId == productId);
+
                 if (cartItem == null)
                 {
                     return new Result<Cart>()
@@ -101,12 +119,13 @@
                     };
                 }
 
-                await _unitOfWork.Carts.RemoveCartItemAsync(cartItem.Id);
+                await _unitOfWork.Carts.RemoveCartItemAsync(cartItem);
                 await transaction.CommitAsync();
+
                 return new Result<Cart>()
                 {
                     IsSuccess = true,
-
+                    Message = "Item removed successfully"
                 };
             }
             catch (Exception e)
@@ -121,9 +140,10 @@
             }
         }
 
+
         public async Task<Result<Cart>> ClearCartAsync(Guid userId)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var cart = await _unitOfWork.Carts.GetCart(userId);
@@ -141,6 +161,7 @@
                 return new Result<Cart>()
                 {
                     IsSuccess = true,
+                    Message = "Clear cart succesfully"
                 };
             }
             catch (Exception e)

@@ -54,5 +54,8 @@ public class Product
     public ICollection<ProductImage> Images { get; set; }
     [Timestamp]
     public byte[] RowVersion { get; set; }
+    public List<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 
+    
 }

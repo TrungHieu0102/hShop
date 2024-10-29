@@ -6,21 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
-public class CartController:ControllerBase
+public class CartController(ICartService cartService) : ControllerBase
 {
-    private readonly ICartService   _cartService;
-    public CartController(ICartService cartService)
-    {
-        _cartService = cartService; 
-    }
-
-    // Thêm sản phẩm vào giỏ hàng
     [HttpPost("add")]
-    [Authorize] // Chỉ cho phép người dùng đã đăng nhập
+    [Authorize] 
     public async Task<IActionResult> AddToCart(Guid productId, int quantity)
     {
-        var userId = Guid.Parse(User.FindFirst("id")?.Value); // Lấy UserId từ Claims
-        var result = await _cartService.AddToCartAsync(userId, productId, quantity);
+        var value = User.FindFirst("id")?.Value;
+        if (value == null) return BadRequest("User not found");
+        var userId = Guid.Parse(value); // Lấy UserId từ Claims
+        var result = await cartService.AddToCartAsync(userId, productId, quantity);
 
         if (!result.IsSuccess)
             return BadRequest(result.Message);
@@ -28,27 +23,30 @@ public class CartController:ControllerBase
         return Ok(result);
     }
 
-    // Xóa sản phẩm khỏi giỏ hàng
     [HttpDelete("remove")]
     [Authorize]
     public async Task<IActionResult> RemoveFromCart(Guid productId)
     {
-        var userId = Guid.Parse(User.FindFirst("id")?.Value);
-        var result = await _cartService.RemoveFromCartAsync(userId, productId);
+        var value = User.FindFirst("id")?.Value;
+        if (value == null) return BadRequest();
+        var userId = Guid.Parse(value);
+        var result = await cartService.RemoveFromCartAsync(userId, productId);
 
         if (!result.IsSuccess)
             return BadRequest(result.Message);
 
         return Ok(result);
+
     }
 
-    // Xóa toàn bộ giỏ hàng
     [HttpDelete("clear")]
     [Authorize]
     public async Task<IActionResult> ClearCart()
     {
-        var userId = Guid.Parse(User.FindFirst("id")?.Value);
-        var result = await _cartService.ClearCartAsync(userId);
+        var value = User.FindFirst("id")?.Value;
+        if (value == null) return BadRequest();
+        var userId = Guid.Parse(value);
+        var result = await cartService.ClearCartAsync(userId);
 
         if (!result.IsSuccess)
             return BadRequest(result.Message);

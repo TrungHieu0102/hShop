@@ -12,15 +12,8 @@ namespace WebApi.Controllers
     [Route("[controller]")]
     [ValidateModel]
 
-    public class TokenController : ControllerBase
+    public class TokenController(ITokenService tokenService, UserManager<User> userManager) : ControllerBase
     {
-        private readonly ITokenService _tokenService;
-        private readonly UserManager<User> _userManager;
-        public TokenController(ITokenService tokenService, UserManager<User> userManager)
-        {
-            _tokenService = tokenService;
-            _userManager = userManager;
-        }
         [HttpPost]
         [Route("refresh")]
         public async Task<ActionResult<AuthenticatedResult>> Refresh(TokenRequest tokenRequest)
@@ -31,25 +24,25 @@ namespace WebApi.Controllers
             }
             var accessToken = tokenRequest.AccessToken;
             var refreshToken = tokenRequest.RefreshToken;
-            var principal = _tokenService.GetPrincipalFromExpiredToken(accessToken);
-            if(principal == null || principal.Identity == null || principal.Identity.Name == null)
+            var principal = tokenService.GetPrincipalFromExpiredToken(accessToken);
+            if(principal.Identity?.Name == null)
             {
                 return BadRequest("Invalid client request");
             }
             var username = principal.Identity.Name;
-            var user = await _userManager.FindByNameAsync(username);
+            var user = await userManager.FindByNameAsync(username);
             if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
             {
                 return BadRequest("Invalid client request");
             }
-            var newAccessToken = _tokenService.GenerateAccessToken(principal.Claims);
-            var newRefreshToken = _tokenService.GenerateRefreshToken();
-            user.RefreshToken = newRefreshToken;
-            await _userManager.UpdateAsync(user);
+            var newAccessToken = tokenService.GenerateAccessToken(principal.Claims);
+            // var newRefreshToken = tokenService.GenerateRefreshToken();
+            // user.RefreshToken = newRefreshToken;
+            await userManager.UpdateAsync(user);
             return new AuthenticatedResult
             {
                 AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken
+                // RefreshToken = newRefreshToken
             };
 
         }
@@ -58,13 +51,13 @@ namespace WebApi.Controllers
         public async Task<IActionResult> Revoke()
         {
            
-            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var user = await userManager.FindByNameAsync(User.Identity.Name);
             if (user == null)
             {
                 return BadRequest();
             }
             user.RefreshToken = null;
-            await _userManager.UpdateAsync(user);
+            await userManager.UpdateAsync(user);
             return NoContent();
         }
 

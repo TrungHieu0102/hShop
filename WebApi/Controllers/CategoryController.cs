@@ -8,17 +8,12 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [ValidateModel]
-public class CategoryController : ControllerBase
+public class CategoryController(ICategoryService categoryService) : ControllerBase
 {
-    private readonly ICategoryService _categoryService;
-    public CategoryController(ICategoryService categoryService)
-    {
-        _categoryService = categoryService;
-    }
     [HttpGet]
     public async Task<IActionResult> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
     {
-        var pagedResult = await _categoryService.GetAllAsync(page, pageSize, search, IsDecsending);
+        var pagedResult = await categoryService.GetAllAsync(page, pageSize, search, IsDecsending);
         if(pagedResult.IsSuccess == false)
         {
             return BadRequest();
@@ -26,10 +21,10 @@ public class CategoryController : ControllerBase
         return Ok(pagedResult);
     }
     [HttpGet]
-    [Route("{id}")]
+    [Route("{id:guid}")]
     public async Task<IActionResult> GetCategoryById(Guid id)
     {
-        var result = await _categoryService.GetByIdAsync(id);
+        var result = await categoryService.GetByIdAsync(id);
         if (!result.IsSuccess)
         {
             return NotFound(result.Message);
@@ -39,7 +34,7 @@ public class CategoryController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddCategory([FromForm] CreateUpdateCategoryDto categoryDto)
     {
-        var result = await _categoryService.AddCategoryAsync(categoryDto);
+        var result = await categoryService.AddCategoryAsync(categoryDto);
         if (!result.IsSuccess)
         {
             return BadRequest(result.Message);
@@ -47,10 +42,10 @@ public class CategoryController : ControllerBase
         return Created();
     }
     [HttpPut]
-    [Route("{id}")]
+    [Route("{id:guid}")]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromForm] CreateUpdateCategoryDto categoryDto)
     {
-        var result = await _categoryService.UpdateCategoryAsync(id, categoryDto);
+        var result = await categoryService.UpdateCategoryAsync(id, categoryDto);
         if (!result.IsSuccess)
         {
             return NotFound(result.Message);
@@ -58,10 +53,10 @@ public class CategoryController : ControllerBase
         return NoContent();
     }
     [HttpDelete]
-    [Route("{id}")]
+    [Route("{id:guid}")]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
-        var result = await _categoryService.DeleteCategoryAsync(id);
+        var result = await categoryService.DeleteCategoryAsync(id);
         if (!result)
         {
             return NotFound("Category not found");

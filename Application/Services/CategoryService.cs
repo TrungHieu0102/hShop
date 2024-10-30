@@ -1,5 +1,5 @@
 ﻿using Application.DTOs.CategoriesDto;
-using Application.Extentions;
+using Application.Extensions;
 using Application.Interfaces;
 using AutoMapper;
 using Core.Entities;

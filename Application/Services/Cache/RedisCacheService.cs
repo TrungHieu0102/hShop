@@ -35,5 +35,15 @@ namespace Application.Services.Cache
         {
             await _distributedCache.RemoveAsync(cacheKey);
         }
+
+        public async Task SetCachedDataAsyncWithTime<T>(string cacheKey, T data, TimeSpan expirationTime)
+        {
+            var serializedData = JsonSerializer.Serialize(data);
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = expirationTime
+            };
+            await _distributedCache.SetStringAsync(cacheKey,serializedData,cacheOptions);
+        }
     }
 }

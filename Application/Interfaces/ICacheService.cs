@@ -11,5 +11,6 @@ namespace Application.Interfaces
         Task<T> GetCachedDataAsync<T>(string cacheKey);
         Task SetCachedDataAsync<T>(string cacheKey, T data);
         Task RemoveCachedDataAsync(string cacheKey);
+        Task SetCachedDataAsyncWithTime<T>(string cacheKey, T data, TimeSpan expirationTime);
     }
 }

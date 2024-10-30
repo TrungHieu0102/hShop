@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông báo Đơn hàng đã được gửi</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            max-width: 150px; /* Điều chỉnh kích thước logo */
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #007BFF;
+            font-size: 20px;
+            border-bottom: 2px solid #007BFF;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        .order-summary {
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .button {
+            display: inline-block;
+            background-color: #007BFF;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .item-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .item-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .highlight {
+            background-color: #e7f3ff;
+            padding: 10px;
+            border-left: 4px solid #007BFF;
+            margin: 10px 0;
+        }
+        .contact-info {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="logo">
+        <img src="https://res.cloudinary.com/dlgnuolsl/image/upload/v1729874431/vs41ytpr3lolsb1m0b2h.jpg" alt="Logo Thương Hiệu">
+    </div>
+    <h1>Đơn hàng của bạn đã được gửi!</h1>
+    <p>Xin chào {{UserName}}</p>
+    <p>Chúng tôi rất vui mừng thông báo rằng đơn hàng <strong>#{{OrderId}}</strong> của bạn đã được gửi đi! 🎉</p>
+
+    <h2>Thông tin giao hàng:</h2>
+    <p><strong>Vận chuyển bởi:</strong> Giao Hàng Nhanh</p>
+    <p>Bạn có thể theo dõi đơn hàng của mình qua liên kết dưới đây:</p>
+    <a href="[Tracking Link]" class="button">Theo dõi đơn hàng của bạn</a>
+
+    <div class="order-summary">
+        <h2>Tóm tắt đơn hàng:</h2>
+        <p><strong>Hàng hóa:</strong></p>
+        <ul class="item-list">
+            [Item List]
+        </ul>
+        <p><strong>Tổng số tiền:</strong> [Total Amount]</p>
+    </div>
+
+    <div class="highlight">
+        <p>Cảm ơn bạn đã mua sắm cùng chúng tôi! Chúng tôi hy vọng bạn sẽ thích sản phẩm của mình.</p>
+    </div>
+
+    <div class="contact-info">
+        <p>Nếu bạn có bất kỳ câu hỏi nào hoặc cần hỗ trợ thêm, hãy liên hệ với đội ngũ dịch vụ khách hàng của chúng tôi qua email <a href="mailto:hatrunghieu121@gmail.com">[Customer Service Email]</a> hoặc số điện thoại <a href="tel:[0349977194]">[Customer Service Phone Number]</a>.</p>
+    </div>
+
+    <div class="footer">
+        <p>Trân trọng</p>
+
+    </div>
+</div>
+</body>
+</html>

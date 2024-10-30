@@ -53,6 +53,7 @@
                     {
                         CartId = cart.Id,
                         ProductId = productId,
+                        ProductName = product.Name,
                         Quantity = quantity,
                         UnitPrice = product.Price * quantity
                         
@@ -155,7 +156,6 @@
                         Message = "Cart not found"
                     };
                 }
-
                 await _unitOfWork.Carts.ClearCartAsync(cart.Id);
                 await transaction.CommitAsync();
                 return new Result<Cart>()

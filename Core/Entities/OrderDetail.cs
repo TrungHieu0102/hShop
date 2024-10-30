@@ -8,7 +8,7 @@ public class OrderDetail
     // Composite Key Properties
     public Guid OrderId { get; set; }
     public Guid ProductId { get; set; }
-    
+    public string ProductName { get; set; }
     public required Order Order { get; set; } 
     public required Product Product { get; set; } 
     

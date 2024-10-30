@@ -1,20 +1,12 @@
-﻿using Application.DTOs.CategoriesDto;
-using Application.DTOs.SuppliersDto;
-using Application.Extentions;
+﻿using Application.DTOs.SuppliersDto;
+using Application.Extensions;
 using Application.Interfaces;
 using AutoMapper;
-using CloudinaryDotNet.Actions;
 using Core.Entities;
 using Core.Interfaces;
 using Core.Model;
 using Microsoft.Extensions.Logging;
-using MimeKit.Encodings;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
+
 
 namespace Application.Services
 {

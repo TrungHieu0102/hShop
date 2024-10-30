@@ -9,7 +9,7 @@ using Application.DTOs.RolesDto;
 using Core.Entities;
 using Microsoft.AspNetCore.Identity;
 #nullable disable
-namespace Application.Extentions
+namespace Application.Extensions
 {
     public static class ClaimExtensions
     {

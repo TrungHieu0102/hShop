@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.Extentions
+namespace Application.Extensions
 {
     public static class RefreshToken
     {

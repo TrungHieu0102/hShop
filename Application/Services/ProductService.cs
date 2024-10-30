@@ -1,6 +1,6 @@
 ﻿using Application.DTOs.CategoriesDto;
 using Application.DTOs.ProductsDto;
-using Application.Extentions;
+using Application.Extensions;
 using Application.Interfaces;
 using AutoMapper;
 using Core.Entities;
@@ -180,7 +180,7 @@ namespace Application.Services
                 return false;
             }
         }
-        public async Task<PagedResult<ProductInListDto>> GetAllProductsAsync(int page, int pageSize, string search, bool IsDecsending = false)
+        public async Task<PagedResult<ProductInListDto>> GetAllProductsAsync(int page, int pageSize, string search, bool isDescending = false)
         {
             try
             {
@@ -191,7 +191,7 @@ namespace Application.Services
                     productsQuery = productsQuery.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
                 }
 
-                productsQuery = IsDecsending ? productsQuery.OrderByDescending(p => p.Name) : productsQuery.OrderBy(p => p.Name);
+                productsQuery = isDescending ? productsQuery.OrderByDescending(p => p.Name) : productsQuery.OrderBy(p => p.Name);
 
                 var totalRows =  productsQuery.Count();
 
@@ -239,12 +239,12 @@ namespace Application.Services
             }
         }
 
-        public async Task<PagedResult<ProductDto>> GetProductByCategoryAsync(Guid categoryId, int page, int pageSize, bool IsDecsending)
+        public async Task<PagedResult<ProductDto>> GetProductByCategoryAsync(Guid categoryId, int page, int pageSize, bool isDescending)
         {
             try
             {
                 var products = await _unitOfWork.Products.GetByCategoryIdAsync(categoryId);
-                products = IsDecsending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
+                products = isDescending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
                 var totalRows = products.Count();
                 var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
                 return new PagedResult<ProductDto>
@@ -258,7 +258,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError("An error occurred while creating the order: {ErrorMessage}", ex.Message);
                 return new PagedResult<ProductDto>
                 {
                     CurrentPage = page,
@@ -301,12 +301,12 @@ namespace Application.Services
                 };
             }
         }
-        public async Task<PagedResult<ProductInListDto>> SearchProductByNameAsync(string name, int page, int pageSize, bool IsDecsending)
+        public async Task<PagedResult<ProductInListDto>> SearchProductByNameAsync(string name, int page, int pageSize, bool isDescending)
         {
             try
             {
                 var products = await _unitOfWork.Products.SearchByNameAsync(name);
-                products = IsDecsending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
+                products = isDescending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
                 var totalRows = products.Count();
                 var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
                 return new PagedResult<ProductInListDto>

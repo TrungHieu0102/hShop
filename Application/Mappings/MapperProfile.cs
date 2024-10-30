@@ -49,9 +49,12 @@ namespace Application.Mappings
                 .ForMember(dest => dest.OrderDetails, opt => opt.MapFrom(src => new List<OrderDetail>())); // Khởi tạo OrderDetails rỗng
 
             CreateMap<OrderDetailDto, OrderDetail>();
-            CreateMap<Order, OrderDto>();
+            CreateMap<Order, OrderDto>()
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod.ToString()))
+                .ForMember(dest => dest.ShippingProvider, opt => opt.MapFrom(src => src.ShippingProvider.ToString()))
+                .ForMember(dest => dest.OrderStatus, opt => opt.MapFrom(src => src.OrderStatus.ToString()))
+                .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.PaymentStatus.ToString()));
             CreateMap<OrderDetail, OrderDetailDto>();
-
             CreateMap<SignInDto, User>().ReverseMap();
 
             CreateMap<RoleDto, Role>().ReverseMap();
@@ -59,6 +62,7 @@ namespace Application.Mappings
             CreateMap<UserInformatioResponeDto, User>().ReverseMap();
             CreateMap<CreateUpdateUserDto, User>().ReverseMap();
 
+            
         }
     }
 }

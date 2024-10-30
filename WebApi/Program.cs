@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
 using WebApi.Authorization;
 using Core.ConfigOptions;
 using CloudinaryDotNet;
@@ -30,7 +31,11 @@ if (string.IsNullOrEmpty(jwtKey))
 }
 // Add services to the container.
 builder.Services.AddLogging();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -74,7 +79,6 @@ builder.Services.AddHttpContextAccessor(); // Để sử dụng IHttpContextAcce
 //Email
 
 builder.Services.AddTransient<IEmailService, EmailService>();
-
 // Register the policy provider
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
@@ -98,7 +102,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 //Cart
 builder.Services.AddScoped<ICartService, CartService>();
 //Order
-builder.Services.AddScoped<IOrderSevice, OrderService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -113,8 +117,8 @@ builder.Services.AddAuthentication(options =>
 }).AddGoogle(options =>
 {
     IConfigurationSection googleAuthSection =builder.Configuration.GetSection("Authentication:Google");
-    options.ClientId = googleAuthSection["ClientId"];
-    options.ClientSecret = googleAuthSection["ClientSecret"];
+    options.ClientId = googleAuthSection["ClientId"] ?? string.Empty;
+    options.ClientSecret = googleAuthSection["ClientSecret"] ?? string.Empty;
 })
 .AddJwtBearer(options =>
 {
@@ -140,9 +144,9 @@ builder.Services.AddCors(options =>
 //Cloudinary 
 var cloudinarySettings = builder.Configuration.GetSection("CloudinarySettings").Get<CloudinarySettings>();
 var account = new Account(
-       cloudinarySettings.CloudName,
-       cloudinarySettings.ApiKey,
-       cloudinarySettings.ApiSecret
+       cloudinarySettings?.CloudName,
+       cloudinarySettings?.ApiKey,
+       cloudinarySettings?.ApiSecret
    ); 
 Cloudinary cloudinary = new Cloudinary(account);
 builder.Services.AddSingleton(cloudinary);

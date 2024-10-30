@@ -5,14 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Data
 {
-    public class ProductRepository : RepositoryBase<Product, Guid>, IProductRepository
+    public class ProductRepository(HshopContext context) : RepositoryBase<Product, Guid>(context), IProductRepository
     {
-
-        public ProductRepository(HshopContext context) : base(context)
-        {
-
-        }
-
         public async Task<IEnumerable<Product>> GetByCategoryIdAsync(Guid categoryId)
         {
             var product = await _context.Products.Where(p => p.CategoryId == categoryId).Include(p => p.Images).ToListAsync();

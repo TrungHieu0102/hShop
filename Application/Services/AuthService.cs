@@ -1,7 +1,7 @@
 ﻿using Application.Constants;
 using Application.DTOs.AuthsDto;
 using Application.DTOs.RolesDto;
-using Application.Extentions;
+using Application.Extensions;
 using Application.Interfaces;
 using Application.Model;
 using Core.Entities;
@@ -15,44 +15,41 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Application.Common.TemplateEmail;
 
 
 namespace Application.Services
 {
-    public class AuthService : IAuthService
+    public class AuthService(
+        UserManager<User> userManager,
+        IConfiguration configuration,
+        SignInManager<User> signInManager,
+        RoleManager<Role> roleManager,
+        IEmailService emailService,
+        ICacheService cacheService)
+        : IAuthService
     {
-        private readonly UserManager<User> _userManager;
-        private readonly SignInManager<User> _signInManager;
-        private readonly RoleManager<Role> _roleManager;
-        private readonly IConfiguration _configuration;
-        private readonly IEmailService _emailService;
-        public AuthService(UserManager<User> userManager, IConfiguration configuration, SignInManager<User> signInManager, RoleManager<Role> roleManager, IEmailService emailService)
-        {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _configuration = configuration;
-            _roleManager = roleManager;
-            _emailService = emailService;
-        }
+        private readonly ICacheService _cacheService = cacheService;
+
         public async Task<AuthResponseDto> SignInAsycn(SignInDto signInDto)
         {
-            var user = await _userManager.FindByEmailAsync(signInDto.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, signInDto.Password))
+            var user = await userManager.FindByEmailAsync(signInDto.Email);
+            if (user == null || !await userManager.CheckPasswordAsync(user, signInDto.Password))
             {
                 return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
             }
-            var result = await _signInManager.PasswordSignInAsync(signInDto.Email, signInDto.Password, false, false);
-            var emailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
+            var result = await signInManager.PasswordSignInAsync(signInDto.Email, signInDto.Password, false, false);
+            var emailConfirmed = await userManager.IsEmailConfirmedAsync(user);
             if (!result.Succeeded)
             {
                 return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
             }
             if (!emailConfirmed)
             {
-                await _emailService.SendConfirmationEmail(signInDto.Email, user);
+                await emailService.SendConfirmationEmail(signInDto.Email, user);
                 return new AuthResponseDto { IsSuccess = false, Message = "Please confirm your email " };
             }
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = await userManager.GetRolesAsync(user);
 
             var permission = await GetPermissionAsync(user.Id.ToString());
             var authClaims = new List<Claim>
@@ -66,21 +63,21 @@ namespace Application.Services
                     new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
-            var userRole = await _userManager.GetRolesAsync(user);
+            var userRole = await userManager.GetRolesAsync(user);
 
             foreach (var role in userRole)
             {
                 authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
             }
-            var jwtKey = _configuration["JWT:Key"];
+            var jwtKey = configuration["JWT:Key"];
             if (string.IsNullOrEmpty(jwtKey))
             {
                 throw new InvalidOperationException("JWT Key is not configured.");
             }
             var authKey = Encoding.UTF8.GetBytes(jwtKey);
             var token = new JwtSecurityToken(
-                issuer: _configuration["JWT:Issuer"],
-                audience: _configuration["JWT:Audience"],
+                issuer: configuration["JWT:Issuer"],
+                audience: configuration["JWT:Audience"],
                 claims: authClaims,
                 expires: DateTime.Now.AddMinutes(30),
                 signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey), SecurityAlgorithms.HmacSha256)
@@ -107,38 +104,38 @@ namespace Application.Services
                 Email = signUpDto.Email,
                 UserName = signUpDto.Email
             };
-            var result = await _userManager.CreateAsync(user, signUpDto.Password);
+            var result = await userManager.CreateAsync(user, signUpDto.Password);
 
             if (!result.Succeeded)
             {
                 return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
             }
 
-            if (!await _roleManager.RoleExistsAsync(RoleConstants.User))
+            if (!await roleManager.RoleExistsAsync(RoleConstants.User))
             {
-                await _roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
+                await roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
             }
-            await _emailService.SendConfirmationEmail(signUpDto.Email, user);
+            await emailService.SendConfirmationEmail(signUpDto.Email, user);
             return (true, string.Empty);
         }
         public async Task SignOutAsync()
         {
-            await _signInManager.SignOutAsync();
+            await signInManager.SignOutAsync();
         }
         private async Task SaveRefreshToken(Guid userId, string refreshToken)
         {
-            var user = await _userManager.FindByIdAsync(userId.ToString());
+            var user = await userManager.FindByIdAsync(userId.ToString());
             if (user != null)
             {
                 user.RefreshToken = refreshToken;
                 user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
-                await _userManager.UpdateAsync(user);
+                await userManager.UpdateAsync(user);
             }
         }
         public async Task<string> ConfirmEmail(string userId, string token)
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await userManager.FindByIdAsync(userId);
             if (userId == null || token == null)
             {
                 return "Link expired";
@@ -150,7 +147,7 @@ namespace Application.Services
             else
             {
                 token = token.Replace(" ", "+");
-                var result = await _userManager.ConfirmEmailAsync(user, token);
+                var result = await userManager.ConfirmEmailAsync(user, token);
                 if (result.Succeeded)
                 {
                     return "Thank you for confirming your email";
@@ -163,8 +160,8 @@ namespace Application.Services
         }
         private async Task<List<string>> GetPermissionAsync(string userId)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            var roles = await _userManager.GetRolesAsync(user);
+            var user = await userManager.FindByIdAsync(userId);
+            var roles = await userManager.GetRolesAsync(user);
             var permissions = new List<string>();
             var allPermissions = new List<RoleClaimsDto>();
             if (roles.Contains(Roles.Admin))
@@ -180,8 +177,8 @@ namespace Application.Services
             {
                 foreach (var roleName in roles)
                 {
-                    var role = await _roleManager.FindByNameAsync(roleName);
-                    var claims = await _roleManager.GetClaimsAsync(role);
+                    var role = await roleManager.FindByNameAsync(roleName);
+                    var claims = await roleManager.GetClaimsAsync(role);
                     var roleClaimValues = claims.Select(x => x.Value).ToList();
                     permissions.AddRange(roleClaimValues);
                 }
@@ -193,50 +190,54 @@ namespace Application.Services
         {
             User currentUser;
 
-            if (user != null && user.Identity != null && user.Identity.IsAuthenticated)
+            if (user is { Identity.IsAuthenticated: true })
             {
                 var email = user.FindFirst(ClaimTypes.Email)?.Value;
                 if (email == null)
                 {
                     return IdentityResult.Failed(new IdentityError { Description = "Email claim not found." });
                 }
-                currentUser = await _userManager.FindByEmailAsync(email);
+                currentUser = await userManager.FindByEmailAsync(email);
             }
             else
             {
-                currentUser = await _userManager.FindByEmailAsync(mail);
+                currentUser = await userManager.FindByEmailAsync(mail);
                 if (currentUser == null)
                 {
                     return IdentityResult.Failed(new IdentityError { Description = "User not found." });
                 }
             }
             var otp = PasswordExtensions.GenerateOtp();
-            currentUser.OTP = otp;
-            await _userManager.UpdateAsync(currentUser);
-            await _emailService.SendEmailAsync(currentUser.Email, "Mã xác nhận đổi mật khẩu", $"Mã OTP của bạn là: {otp}", false);
+            var cacheKey = $"otp-{currentUser.Id}";
+            await cacheService.SetCachedDataAsyncWithTime(cacheKey, otp, TimeSpan.FromMinutes(5));
+            string body = GenerateEmailBody.GetEmailOTPBody(mail, otp);
+
+            await emailService.SendEmailAsync(currentUser.Email, "Mã xác nhận đổi mật khẩu", body, true);
 
             return IdentityResult.Success;
         }
         public async Task<IdentityResult> ConfirmPasswordChangeAsync(ConfirmPasswordChangeRequest request)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var user = await userManager.FindByEmailAsync(request.Email);
             if (user == null)
             {
                 return IdentityResult.Failed(new IdentityError { Description = "User not found." });
             }
-            if (user.OTP != request.OtpCode)
+            var cacheKey = $"otp-{user.Id}";
+            var otp = await cacheService.GetCachedDataAsync<string>(cacheKey);
+            if (otp != request.OtpCode)
             {
                 return IdentityResult.Failed(new IdentityError { Description = "Invalid OTP code." });
             }
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
 
             if (result.Succeeded)
             {
-                user.OTP = null;
+                await cacheService.RemoveCachedDataAsync(cacheKey);
                 user.RefreshToken = null;
                 user.RefreshTokenExpiryTime = null;
-                await _userManager.UpdateAsync(user);
+                await userManager.UpdateAsync(user);
             }
 
             return result;

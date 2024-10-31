@@ -2,6 +2,7 @@
 using Application.DTOs.UsersDto;
 using Core.Entities;
 using Core.Model;
+using Core.Model.Auth;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -7,9 +7,12 @@ using Core.Entities;
 using Core.Helpers;
 using Core.Interfaces;
 using Core.Model;
+using Core.Model.Auth;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
+using static Google.Apis.Auth.GoogleJsonWebSignature;
 
 namespace Application.Services
 {
@@ -21,13 +24,17 @@ namespace Application.Services
         private readonly IUnitOfWorkBase _unitOfWork;
         private readonly IEmailService _emailService;
         private readonly ILogger<User> _logger;
-        public UserService(UserManager<User> userManager, IMapper mapper, IUnitOfWorkBase unitOfWork, IEmailService emailService, ILogger<User> logger)
+        protected readonly IConfiguration _configuration;
+
+        public UserService(UserManager<User> userManager, IMapper mapper, IUnitOfWorkBase unitOfWork, IEmailService emailService, ILogger<User> logger, IConfiguration configuration)
         {
             _userManager = userManager;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _emailService = emailService;
-            _logger = logger;   
+            _logger = logger;
+            _configuration = configuration;
+
         }
         public async Task<Result<UserInformatioResponeDto>> GetInformationByID(Guid id)
         {
@@ -121,7 +128,9 @@ namespace Application.Services
                 };
             }
         }
-
+        
     }
+
 }
+
 

@@ -16,6 +16,10 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Application.Common.TemplateEmail;
+using Core.Model.Auth;
+using static Google.Apis.Auth.GoogleJsonWebSignature;
+using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.Ocsp;
 
 
 namespace Application.Services
@@ -26,11 +30,10 @@ namespace Application.Services
         SignInManager<User> signInManager,
         RoleManager<Role> roleManager,
         IEmailService emailService,
+        ILogger<AuthService> logger,
         ICacheService cacheService)
         : IAuthService
     {
-        private readonly ICacheService _cacheService = cacheService;
-
         public async Task<AuthResponseDto> SignInAsycn(SignInDto signInDto)
         {
             var user = await userManager.FindByEmailAsync(signInDto.Email);
@@ -54,21 +57,17 @@ namespace Application.Services
             var permission = await GetPermissionAsync(user.Id.ToString());
             var authClaims = new List<Claim>
             {
-                new(JwtRegisteredClaimNames.Email, user.Email),
+                new(JwtRegisteredClaimNames.Email, user.Email!),
                     new Claim(UserClaims.Id, user.Id.ToString()),
-                    new Claim(ClaimTypes.NameIdentifier, user.Email),
-                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.NameIdentifier, user.Email!),
+                    new Claim(ClaimTypes.Name, user.UserName!),
                     new Claim(UserClaims.FirstName, user.FirstName),
                     new Claim(UserClaims.Roles, string.Join(";", roles)),
                     new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             var userRole = await userManager.GetRolesAsync(user);
-
-            foreach (var role in userRole)
-            {
-                authClaims.Add(new Claim(ClaimTypes.Role, role.ToString()));
-            }
+            authClaims.AddRange(userRole.Select(role => new Claim(ClaimTypes.Role, role)));
             var jwtKey = configuration["JWT:Key"];
             if (string.IsNullOrEmpty(jwtKey))
             {
@@ -161,7 +160,7 @@ namespace Application.Services
         private async Task<List<string>> GetPermissionAsync(string userId)
         {
             var user = await userManager.FindByIdAsync(userId);
-            var roles = await userManager.GetRolesAsync(user);
+            var roles = await userManager.GetRolesAsync(user!);
             var permissions = new List<string>();
             var allPermissions = new List<RoleClaimsDto>();
             if (roles.Contains(Roles.Admin))
@@ -178,14 +177,13 @@ namespace Application.Services
                 foreach (var roleName in roles)
                 {
                     var role = await roleManager.FindByNameAsync(roleName);
-                    var claims = await roleManager.GetClaimsAsync(role);
+                    var claims = await roleManager.GetClaimsAsync(role!);
                     var roleClaimValues = claims.Select(x => x.Value).ToList();
                     permissions.AddRange(roleClaimValues);
                 }
             }
             return permissions.Distinct().ToList();
         }
-
         public async Task<IdentityResult> RequestPasswordChangeAsync(string mail, ClaimsPrincipal user)
         {
             User currentUser;
@@ -197,11 +195,11 @@ namespace Application.Services
                 {
                     return IdentityResult.Failed(new IdentityError { Description = "Email claim not found." });
                 }
-                currentUser = await userManager.FindByEmailAsync(email);
+                currentUser = (await userManager.FindByEmailAsync(email))!;
             }
             else
             {
-                currentUser = await userManager.FindByEmailAsync(mail);
+                currentUser = (await userManager.FindByEmailAsync(mail))!;
                 if (currentUser == null)
                 {
                     return IdentityResult.Failed(new IdentityError { Description = "User not found." });
@@ -212,7 +210,7 @@ namespace Application.Services
             await cacheService.SetCachedDataAsyncWithTime(cacheKey, otp, TimeSpan.FromMinutes(5));
             string body = GenerateEmailBody.GetEmailOTPBody(mail, otp);
 
-            await emailService.SendEmailAsync(currentUser.Email, "Mã xác nhận đổi mật khẩu", body, true);
+            await emailService.SendEmailAsync(currentUser.Email!, "Mã xác nhận đổi mật khẩu", body, true);
 
             return IdentityResult.Success;
         }
@@ -242,8 +240,130 @@ namespace Application.Services
 
             return result;
         }
+        public async Task<AuthResponseDto> AuthenticateGoogleUserAsync(GoogleUserRequest request)
+        {
+            try
+            {
+                Payload payload = await ValidateAsync(request.idToken, new ValidationSettings
+                {
+                    Audience = new[] { configuration["Authentication:Google:ClientId"] }
+                });
 
-      
+                var user = await GetOrCreateExternalLoginUser(GoogleUserRequest.PROVIDER, payload.Subject, payload.Email, payload.GivenName, payload.FamilyName);
+                return await GenerateUserToken(user);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error during Google user authentication for token: {Token}", request.idToken);
+                throw new Exception("Authentication failed. Please try again later.");
+            }
+        }
+        private async Task<User> GetOrCreateExternalLoginUser(string provider, string key, string email, string firstName, string lastName)
+        {
+            try
+            {
+                var user = await userManager.FindByLoginAsync(provider, key);
+
+                if (user != null)
+                    return user;
+
+                user = await userManager.FindByEmailAsync(email);
+                Guid id = Guid.NewGuid();
+
+                if (user == null)
+                {
+                    user = new User
+                    {
+                        Email = email,
+                        UserName = email,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Id = id,
+                        EmailConfirmed = true
+                    };
+
+                    var createResult = await userManager.CreateAsync(user);
+                    if (!createResult.Succeeded)
+                    {
+                        throw new Exception("User  creation failed: " + string.Join(", ", createResult.Errors.Select(x => x.Description)));
+                    }
+
+                    var info = new UserLoginInfo(provider, key, provider.ToUpperInvariant());
+                    var result = await userManager.AddLoginAsync(user, info);
+
+                    if (!result.Succeeded)
+                    {
+                        throw new Exception("Adding login failed: " + string.Join(", ", result.Errors.Select(x => x.Description)));
+                    }
+                }
+
+                return user;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error in GetOrCreateExternalLoginUser  for provider: {Provider}, key: {Key}", provider, key);
+                throw;
+            }
+        }
+        #region Private Methods
+        private async Task<AuthResponseDto> GenerateUserToken(User user)
+        {
+            try
+            {
+                var roles = await userManager.GetRolesAsync(user);
+                var permission = await GetPermissionAsync(user.Id.ToString());
+
+                var authClaims = new List<Claim>
+                {
+                new(JwtRegisteredClaimNames.Email, user.Email!),
+                new Claim(UserClaims.Id, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Email!),
+                new Claim(ClaimTypes.Name, user.UserName!),
+                new Claim(UserClaims.FirstName, user.FirstName),
+                new Claim(UserClaims.Roles, string.Join(";", roles)),
+                new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                };
+
+                var userRole = await userManager.GetRolesAsync(user);
+                authClaims.AddRange(userRole.Select(role => new Claim(ClaimTypes.Role, role)));
+
+                var jwtKey = configuration["JWT:Key"];
+                if (string.IsNullOrEmpty(jwtKey))
+                {
+                    throw new InvalidOperationException("JWT Key is not configured.");
+                }
+
+                var authKey = Encoding.UTF8.GetBytes(jwtKey);
+                var token = new JwtSecurityToken(
+                    issuer: configuration["JWT:Issuer"],
+                    audience: configuration["JWT:Audience"],
+                    claims: authClaims,
+                    expires: DateTime.Now.AddMinutes(30),
+                    signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey), SecurityAlgorithms.HmacSha256)
+                );
+
+                var refreshToken = RefreshToken.GenerateRefreshToken();
+                await SaveRefreshToken(user.Id, refreshToken);
+
+                return new AuthResponseDto
+                {
+                    AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+                    RefreshToken = user.RefreshToken,
+                    Expiration = user.RefreshTokenExpiryTime ?? DateTime.MinValue,
+                    IsSuccess = true,
+                    Message = "Success"
+                };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error generating token for user: {User Id}", user.Id);
+                throw new Exception("Token generation failed. Please try again later.");
+            }
+        }
+
+        #endregion
+
     }
 }
 

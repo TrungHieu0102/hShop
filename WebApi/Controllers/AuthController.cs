@@ -1,9 +1,20 @@
 ﻿using Application.DTOs.AuthsDto;
 using Application.Interfaces;
 using Application.Model;
+using Application.Services;
+using Core.Entities;
+using Core.Model.Auth;
+using Core.SeedWorks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using WebApi.Filters;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace WebApi.Controllers
 {
@@ -11,10 +22,11 @@ namespace WebApi.Controllers
     [Route("api/[controller]")]
     [ValidateModel]
 
-    public class AuthController(IAuthService authService, IHttpContextAccessor httpContextAccessor)
+    public class AuthController(IAuthService authService, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
         : ControllerBase
     {
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly IConfiguration _configuration = configuration;
 
         [HttpPost("Sign-up")]
         public async Task<IActionResult> SignUp([FromBody] SignUpDto signUpDto)
@@ -80,10 +92,10 @@ namespace WebApi.Controllers
             return Content(result);
         }
         [HttpPost("request-password-change")]
-        public async Task<IActionResult> RequestPasswordChange( string mail)
+        public async Task<IActionResult> RequestPasswordChange(string mail)
         {
             var result = await authService.RequestPasswordChangeAsync(mail, User);
-                   
+
             if (!result.Succeeded)
             {
                 return BadRequest(result.Errors.First().Description);
@@ -103,6 +115,12 @@ namespace WebApi.Controllers
 
             return Ok("Password changed successfully.");
         }
-
+        [AllowAnonymous]
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleAuthenticate([FromBody] GoogleUserRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState.Values.SelectMany(it => it.Errors).Select(it => it.ErrorMessage));
+            return Ok(await authService.AuthenticateGoogleUserAsync(request));
+        }
     }
 }

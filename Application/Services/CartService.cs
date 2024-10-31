@@ -6,23 +6,14 @@
 
     namespace Application.Services;
 
-    public class CartService : ICartService
+    public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger) : ICartService
     {
-        private readonly IUnitOfWorkBase _unitOfWork;
-        private readonly ILogger<Cart> _logger;
-
-        public CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger)
-        {
-            _unitOfWork = unitOfWork;
-            _logger = logger;
-        }
-
         public async Task<Result<Cart>> AddToCartAsync(Guid userId, Guid productId, int quantity)
         {
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
-                var product = await _unitOfWork.Products.GetByIdAsync(productId);
+                var product = await unitOfWork.Products.GetByIdAsync(productId);
                 if (product == null || product.Quantity < quantity)
                 {
                     return new Result<Cart>()
@@ -32,19 +23,19 @@
                     };
                 }
 
-                var cart = await _unitOfWork.Carts.GetCartWithItemsAsync(userId);
+                var cart = await unitOfWork.Carts.GetCartWithItemsAsync(userId);
                 if (cart == null)
                 {
                     cart = new Cart { UserId = userId };
-                    await _unitOfWork.Carts.CreateCartAsync(cart);
+                    await unitOfWork.Carts.CreateCartAsync(cart);
                 }
-                var cartItem = await _unitOfWork.Carts.GetCartItemAsync(cart.Id, productId);
+                var cartItem = await unitOfWork.Carts.GetCartItemAsync(cart.Id, productId);
                 if (cartItem != null)
                 {
-                    var productInItem = await _unitOfWork.Products.GetByIdAsync(productId);
+                    var productInItem = await unitOfWork.Products.GetByIdAsync(productId);
                     cartItem.Quantity += quantity;
                     cartItem.UnitPrice += productInItem.Price * quantity;
-                    await _unitOfWork.Carts.UpdateCartItemAsync(cartItem);
+                    await unitOfWork.Carts.UpdateCartItemAsync(cartItem);
                 }
                 else
                 {
@@ -58,7 +49,7 @@
                         UnitPrice = product.Price * quantity
                         
                     };
-                    await _unitOfWork.Carts.AddCartItemAsync(newCartItem);
+                    await unitOfWork.Carts.AddCartItemAsync(newCartItem);
                 }
 
                 await transaction.CommitAsync();
@@ -70,7 +61,7 @@
             }
             catch (Exception e)
             {
-                _logger.LogError(e.Message);
+                logger.LogError(e.Message);
                 await transaction.RollbackAsync();
                 return new Result<Cart>()
                 {
@@ -84,10 +75,10 @@
         
         public async Task<Result<Cart>> RemoveFromCartAsync(Guid userId, Guid productId)
         {
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
-                var cart = await _unitOfWork.Carts.GetCartWithItemsAsync(userId);
+                var cart = await unitOfWork.Carts.GetCartWithItemsAsync(userId);
                 if (cart == null)
                 {
                     return new Result<Cart>()
@@ -99,7 +90,7 @@
 
                 if (cart.Items.Count == 1 && cart.Items.Any(x => x.ProductId == productId))
                 {
-                    await _unitOfWork.Carts.ClearCartAsync(cart.Id);
+                    await unitOfWork.Carts.ClearCartAsync(cart.Id);
                     await transaction.CommitAsync();
                     return new Result<Cart>()
                     {
@@ -120,7 +111,7 @@
                     };
                 }
 
-                await _unitOfWork.Carts.RemoveCartItemAsync(cartItem);
+                await unitOfWork.Carts.RemoveCartItemAsync(cartItem);
                 await transaction.CommitAsync();
 
                 return new Result<Cart>()
@@ -131,7 +122,7 @@
             }
             catch (Exception e)
             {
-                _logger.LogError(e.Message);
+                logger.LogError(e.Message);
                 await transaction.RollbackAsync();
                 return new Result<Cart>()
                 {
@@ -144,10 +135,10 @@
 
         public async Task<Result<Cart>> ClearCartAsync(Guid userId)
         {
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
-                var cart = await _unitOfWork.Carts.GetCart(userId);
+                var cart = await unitOfWork.Carts.GetCart(userId);
                 if (cart == null)
                 {
                     return new Result<Cart>()
@@ -156,17 +147,17 @@
                         Message = "Cart not found"
                     };
                 }
-                await _unitOfWork.Carts.ClearCartAsync(cart.Id);
+                await unitOfWork.Carts.ClearCartAsync(cart.Id);
                 await transaction.CommitAsync();
                 return new Result<Cart>()
                 {
                     IsSuccess = true,
-                    Message = "Clear cart succesfully"
+                    Message = "Clear cart successfully"
                 };
             }
             catch (Exception e)
             {
-                _logger.LogError(e.Message);
+                logger.LogError(e.Message);
                 await transaction.RollbackAsync();
                 return new Result<Cart>()
                 {

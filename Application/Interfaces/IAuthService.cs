@@ -1,5 +1,7 @@
 ﻿using Application.DTOs.AuthsDto;
 using Application.Model;
+using Core.Entities;
+using Core.Model.Auth;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
@@ -14,5 +16,6 @@ namespace Application.Interfaces
 
         Task<IdentityResult> RequestPasswordChangeAsync(string mail, ClaimsPrincipal user);
         Task<IdentityResult> ConfirmPasswordChangeAsync(ConfirmPasswordChangeRequest request);
+        Task<AuthResponseDto> AuthenticateGoogleUserAsync(GoogleUserRequest request);
     }
 }

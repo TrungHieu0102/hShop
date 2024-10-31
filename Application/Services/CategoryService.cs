@@ -9,35 +9,35 @@ using Core.Model;
 using Microsoft.Extensions.Logging;
 namespace Application.Services
 {
-    public class CategoryService : ICategoryService
+    public class CategoryService(
+        IUnitOfWorkBase unitOfWork,
+        IMapper mapper,
+        ICacheService cacheService,
+        IPhotoService photoService,
+        ILogger<ICategoryService> logger)
+        : ICategoryService
     {
-        private readonly IUnitOfWorkBase _unitOfWork;
-        private readonly IMapper _mapper;
-        private readonly ICacheService _cacheServices;
-        private readonly IPhotoService _photoService;
-        private readonly ILogger<ICategoryService> _logger;
-        public CategoryService (IUnitOfWorkBase unitOfWork, IMapper mapper, ICacheService cacheService, IPhotoService photoService, ILogger<ICategoryService> logger) => (_unitOfWork, _mapper, _cacheServices, _photoService, _logger) = (unitOfWork, mapper, cacheService, photoService, logger);
         public async Task<Result<CategoryDto>> AddCategoryAsync(CreateUpdateCategoryDto categoryDto)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
                 var slug = SlugHelper.GenerateSlug(categoryDto.Name);
-                if (await _unitOfWork.Categories.IsSlugExits(slug))
+                if (await unitOfWork.Categories.IsSlugExits(slug))
                 {
                     throw new InvalidOperationException("Slug already exists.");
                 }
-                var category = _mapper.Map<Category>(categoryDto);
+                var category = mapper.Map<Category>(categoryDto);
                 category.Slug = slug;
                 category.Id = Guid.NewGuid();
                 if (categoryDto.Images != null)
                 {
-                    var uploadResult = await _photoService.AddPhotoAsync(categoryDto.Images, "categories");
+                    var uploadResult = await photoService.AddPhotoAsync(categoryDto.Images, "categories");
                     category.PictureUrl = uploadResult.SecureUrl.ToString();
 
                 }
-                _unitOfWork.Categories.Add(category);
-                var result = await _unitOfWork.CompleteAsync();
+                unitOfWork.Categories.Add(category);
+                var result = await unitOfWork.CompleteAsync();
                 if (result == 0)
                 {
                     await transaction.RollbackAsync();
@@ -51,7 +51,7 @@ namespace Application.Services
                 return new Result<CategoryDto>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<CategoryDto>(category)
+                    Data = mapper.Map<CategoryDto>(category)
                 };
 
             }
@@ -67,10 +67,10 @@ namespace Application.Services
         }
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
-                var category = await _unitOfWork.Categories.GetByIdAsync(id);
+                var category = await unitOfWork.Categories.GetByIdAsync(id);
                 if (category == null)
                 {
                     return false;
@@ -78,15 +78,17 @@ namespace Application.Services
                 if (category.PictureUrl != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(category.PictureUrl);
-                    await _photoService.DeletePhotoAsync("categories", $"categories/{publicId}");
+                    await photoService.DeletePhotoAsync("categories", $"categories/{publicId}");
                 }
-                _unitOfWork.Categories.Delete(category);
-                var result = await _unitOfWork.CompleteAsync();
+                unitOfWork.Categories.Delete(category);
+                var result = await unitOfWork.CompleteAsync();
                 if (result == 0)
                 {
                     await transaction.RollbackAsync();
                     return false;
                 }
+                var cacheKey = $"Category_{id}";
+                await cacheService.RemoveCachedDataAsync(cacheKey);
                 await transaction.CommitAsync();
                 return true;
             }
@@ -96,19 +98,19 @@ namespace Application.Services
                 return false;
             }
         }
-        public async Task<PagedResult<CategoryInListDto>> GetAllAsync(int page, int pageSize, string search, bool IsDecsending = false)
+        public async Task<PagedResult<CategoryInListDto>> GetAllAsync(int page, int pageSize, string search, bool isDecsending = false)
         {
 
             try
             {
-                var categories = await _unitOfWork.Categories.GetAllAsync();
+                var categories = await unitOfWork.Categories.GetAllAsync();
 
                 if (!string.IsNullOrEmpty(search))
                 {
                     categories = categories.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
                 }
 
-                categories = IsDecsending ? categories.OrderByDescending(p => p.Name) : categories.OrderBy(p => p.Name);
+                categories = isDecsending ? categories.OrderByDescending(p => p.Name) : categories.OrderBy(p => p.Name);
 
                 var totalRows = categories.Count();
 
@@ -119,13 +121,13 @@ namespace Application.Services
                     CurrentPage = page,
                     PageSize = pageSize,
                     RowCount = totalRows,
-                    Results = _mapper.Map<IEnumerable<CategoryInListDto>>(pagedCategories),
+                    Results = mapper.Map<IEnumerable<CategoryInListDto>>(pagedCategories),
                     IsSuccess = true
                 };
             }
             catch(Exception ex)
             {
-                _logger.LogError(message: ex.Message);   
+                logger.LogError(message: ex.Message);   
                 return new PagedResult<CategoryInListDto>
                 {
                     CurrentPage = page,
@@ -140,26 +142,26 @@ namespace Application.Services
         {
             try
             {
-                string cachekey = $"Category_{id}";
-                var cachedCategory = await _cacheServices.GetCachedDataAsync<Category>(cachekey);
+                var cacheKey = $"Category_{id}";
+                var cachedCategory = await cacheService.GetCachedDataAsync<Category>(cacheKey);
                 if (cachedCategory != null)
                 {
 
                     return new Result<CategoryDto>
                     {
                         IsSuccess = true,
-                        Data = _mapper.Map<CategoryDto>(cachedCategory)
+                        Data = mapper.Map<CategoryDto>(cachedCategory)
                     };
                 }
-                var category = await _unitOfWork.Categories.GetByIdAsync(id);
+                var category = await unitOfWork.Categories.GetByIdAsync(id);
                 if (category != null)
                 {
-                    await _cacheServices.SetCachedDataAsync(cachekey, category);
+                    await cacheService.SetCachedDataAsync(cacheKey, category);
                 }
                 return new Result<CategoryDto>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<CategoryDto>(category)
+                    Data = mapper.Map<CategoryDto>(category)
                 };
             }
             catch (InvalidOperationException ex)
@@ -173,13 +175,13 @@ namespace Application.Services
         }
         public async Task<Result<Category>> UpdateCategoryAsync(Guid id, CreateUpdateCategoryDto categoryDto)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
 
             try
             {
-                var category = await _unitOfWork.Categories.GetByIdAsync(id);
-                string slug = SlugHelper.GenerateSlug(categoryDto.Name);
-                if (await _unitOfWork.Categories.IsSlugExits(slug))
+                var category = await unitOfWork.Categories.GetByIdAsync(id);
+                var slug = SlugHelper.GenerateSlug(categoryDto.Name);
+                if (await unitOfWork.Categories.IsSlugExits(slug))
                 {
                     return new Result<Category>
                     {
@@ -190,24 +192,24 @@ namespace Application.Services
                 if (category.PictureUrl != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(category.PictureUrl);
-                    await _photoService.DeletePhotoAsync("categories",publicId);
+                    await photoService.DeletePhotoAsync("categories",publicId);
                 }
                 if (categoryDto.Images != null)
                 {
-                    var uploadResult = await _photoService.AddPhotoAsync(categoryDto.Images, "categories");
+                    var uploadResult = await photoService.AddPhotoAsync(categoryDto.Images, "categories");
                     category.PictureUrl = uploadResult.SecureUrl.ToString();
                 }
-                _mapper.Map(categoryDto, category);
+                mapper.Map(categoryDto, category);
                 category.Slug = slug;
-                _unitOfWork.Categories.Update(category);
+                unitOfWork.Categories.Update(category);
 
                 var cacheKey = $"Category_{id}";
-                var cache = await _cacheServices.GetCachedDataAsync<Category>(cacheKey);
+                var cache = await cacheService.GetCachedDataAsync<Category>(cacheKey);
                 if (cache != null)
                 {
-                    await _cacheServices.RemoveCachedDataAsync(cacheKey);
+                    await cacheService.RemoveCachedDataAsync(cacheKey);
                 }
-                await _unitOfWork.CompleteAsync();
+                await unitOfWork.CompleteAsync();
                 await transaction.CommitAsync();
 
                 return new Result<Category>

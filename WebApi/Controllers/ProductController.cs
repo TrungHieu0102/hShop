@@ -27,7 +27,7 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetProductById(Guid id)
         {
             var result = await productService.GetProductByIdAsync(id);
-            if (!result.IsSuccess)
+            if (!result.IsSuccess|| result.Data == null)
             {
                 return NotFound(result.Message);
 
@@ -40,7 +40,7 @@ namespace WebApi.Controllers
             try
             {
                 var result = await productService.AddProductAsync(productDto);
-                return !result.IsSuccess ? StatusCode(400, result.Message) : StatusCode(201, new { message = "Product created successfully", productId = result });
+                return !result.IsSuccess ? StatusCode(400, result.Message) : StatusCode(201, new { message = "Product created successfully"});
             }
             catch (InvalidOperationException ex)
             {

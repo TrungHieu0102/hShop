@@ -17,12 +17,12 @@ using System.Text.Json.Serialization;
 using WebApi.Authorization;
 using Core.ConfigOptions;
 using CloudinaryDotNet;
-using Microsoft.Extensions.Configuration;
 using Application.Services.Cache;
+using Core.Model;
+using Application.Services.Payment;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("hShop");
-
 // Check if the JWT configuration is valid
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrEmpty(jwtKey))
@@ -103,6 +103,10 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 //Order
 builder.Services.AddScoped<IOrderService, OrderService>();
+//Payment
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddSingleton<PaypalConfiguration>();
+
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -156,7 +160,10 @@ builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
 });
-builder.Services.AddScoped<ICacheService, RedisCacheService>(); 
+builder.Services.AddScoped<ICacheService, RedisCacheService>();
+//Paypal
+builder.Services.Configure<PayPalSettings>(builder.Configuration.GetSection("PayPal"));
+
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {

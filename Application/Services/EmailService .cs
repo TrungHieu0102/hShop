@@ -2,42 +2,37 @@
 using Microsoft.Extensions.Configuration;
 using System.Net.Mail;
 using System.Net;
+using Application.Common.TemplateEmail;
 using Core.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace Application.Services
 {
-    public class EmailService : IEmailService
+    public class EmailService(IConfiguration config, UserManager<User> userManager) : IEmailService
     {
-        private readonly IConfiguration _config;
-        private readonly UserManager<User> _userManager;
-        public EmailService( IConfiguration config,UserManager<User> userManager)
+        public Task SendEmailAsync(string toEmail, string subject, string body, bool isBodyHtml)
         {
-            _config = config;
-            _userManager = userManager;
-        }
-        public Task SendEmailAsync(string toEmail, string subject, string body, bool isBodyHTML)
-        {
-            string MailServer = _config["EmailSettings:MailServer"];
-            string FromEmail = _config["EmailSettings:FromEmail"];
-            string Password = _config["EmailSettings:Password"];
-            int Port = int.Parse(_config["EmailSettings:MailPort"]);
-            var client = new SmtpClient(MailServer, Port)
+            string mailServer = config["EmailSettings:MailServer"]!;
+            string fromEmail = config["EmailSettings:FromEmail"]!;
+            string password = config["EmailSettings:Password"]!;
+            int port = int.Parse(config["EmailSettings:MailPort"]!);
+            var client = new SmtpClient(mailServer, port)
             {
-                Credentials = new NetworkCredential(FromEmail, Password),
+                Credentials = new NetworkCredential(fromEmail, password),
                 EnableSsl = true,
             };
-            MailMessage mailMessage = new MailMessage(FromEmail, toEmail, subject, body)
+            var mailMessage = new MailMessage(fromEmail, toEmail, subject, body)
             {
-                IsBodyHtml = isBodyHTML
+                IsBodyHtml = isBodyHtml
             };
             return client.SendMailAsync(mailMessage);
         }
         public async Task SendConfirmationEmail(string email, User user)
         {
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = $"http://localhost:5000/confirm-email?UserId={user.Id}&Token={token}";
-            await SendEmailAsync(email, "Xác nhận đăng ký tài khoản", $"Vui lòng ấn vào <a href='{confirmationLink}'>đây</a>;.", true);
+            var body = GenerateEmailBody.GetEmailConfirmationBody(user.GetFullName(), confirmationLink);
+            await SendEmailAsync(email, "Xác nhận đăng ký tài khoản", body, true);
         }
     }
 }

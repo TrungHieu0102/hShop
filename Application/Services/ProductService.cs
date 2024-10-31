@@ -85,7 +85,7 @@ namespace Application.Services
         }
         public async Task<Result<Product>> UpdateProductWithImagesAsync(Guid id, CreateUpdateProductDto productDto)
         {
-            await using var trasaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var productUpdateResult = await UpdateProductAsync(id, productDto);
@@ -101,12 +101,12 @@ namespace Application.Services
                         return new Result<Product> { IsSuccess = false, Message = "Failed to update product images." };
                     }
                 }
-                await trasaction.CommitAsync();
+                await transaction.CommitAsync();
                 return productUpdateResult;
             }
             catch (Exception ex)
             {
-                await trasaction.RollbackAsync();
+                await transaction.RollbackAsync();
                 return new Result<Product> { IsSuccess = false, Message = ex.Message };
             }
         }
@@ -153,7 +153,7 @@ namespace Application.Services
                 {
                     return false;
                 }
-                if (product.Images != null && product.Images.Any())
+                if (product.Images != null && product.Images.Count != 0)
                 {
                     foreach (var image in product.Images)
                     {
@@ -193,9 +193,10 @@ namespace Application.Services
 
                 productsQuery = isDescending ? productsQuery.OrderByDescending(p => p.Name) : productsQuery.OrderBy(p => p.Name);
 
-                var totalRows =  productsQuery.Count();
+                var enumerable = productsQuery as Product[] ?? productsQuery.ToArray();
+                var totalRows =  enumerable.Count();
 
-                var pagedProducts = productsQuery
+                var pagedProducts = enumerable
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .Select(p => new ProductInListDto

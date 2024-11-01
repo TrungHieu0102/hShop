@@ -111,4 +111,20 @@ public class OrderController(IOrderService orderService) : ControllerBase
         return Ok(result.Data);
     }
 
+    [HttpGet("GetOrdersByStatus")]
+    [Authorize]
+    public async Task<IActionResult> GetOrdersByStatus(OrderStatus status, [FromQuery] int page = 1,
+                                            [FromQuery] int pageSize = 10, [FromQuery] bool isDecsending = false)
+    {
+        var value = User.FindFirst("id")?.Value;
+        if (value == null) return BadRequest("Please login");
+        var userId = Guid.Parse(value);
+        var result = await orderService.GetOrdersByStatusAsync(userId,status, page, pageSize, isDecsending);
+        if (!result.IsSuccess )
+        {
+            return BadRequest("Order not found");
+        }
+        return Ok(result.Results);
+    }
+
 }

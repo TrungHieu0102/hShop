@@ -9,7 +9,7 @@ public interface ICartRepository
     Task ClearCartAsync(Guid userId);
     Task CreateCartAsync(Cart cart);
     Task DeleteCartAsync(Cart cart);
-    Task<Cart> GetCart(Guid userId);
+    Task<Cart?> GetCartByUserId(Guid userId, bool includeItems = false);
     Task UpdateCartItemAsync(CartItem cartItem);
     Task<Cart> GetCartWithItemsAsync(Guid userId);
     Task<CartItem?> GetCartItemAsync(Guid cartId, Guid productId);

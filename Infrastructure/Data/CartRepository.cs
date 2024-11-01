@@ -8,17 +8,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Data
 {
     
-    public class CartRepository : RepositoryBase<Cart, Guid>, ICartRepository
+    public class CartRepository(HshopContext context) : RepositoryBase<Cart, Guid>(context), ICartRepository
     {
-
-        public CartRepository(HshopContext context) : base(context)
+        public async Task<Cart?> GetCartByUserId(Guid userId, bool includeItems=false)
         {
-            
-        }
-
-        public async Task<Cart?> GetCart(Guid userId)
-        {
-            return await _context.Carts.FirstOrDefaultAsync(u=>u.UserId == userId);
+           return await _context.Carts
+                       .Include(c=>c.Items )
+                       .FirstOrDefaultAsync(c=>c.UserId == userId);
         }
         public async Task CreateCartAsync(Cart cart)
         {
@@ -44,7 +40,6 @@ namespace Infrastructure.Data
                 await _context.SaveChangesAsync();
             }
         }
-
         public async Task ClearCartAsync(Guid cartId)
         {
             var cart = await _context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == cartId);
@@ -55,20 +50,17 @@ namespace Infrastructure.Data
                 await _context.SaveChangesAsync();
             }
         }
-
         public async Task UpdateCartItemAsync(CartItem cartItem)
         {
             _context.CartItems.Update(cartItem);
             await _context.SaveChangesAsync();
         }
-
         public async Task<Cart?> GetCartWithItemsAsync(Guid userId)
         {
             return await _context.Carts
                 .Include(c => c.Items)  
                 .FirstOrDefaultAsync(c => c.UserId == userId);
         }
-
         public async Task<CartItem?> GetCartItemAsync(Guid cartId, Guid productId)
         {
             var cartItem =  await _context.CartItems.FirstOrDefaultAsync(c => c.CartId == cartId && c.ProductId == productId);

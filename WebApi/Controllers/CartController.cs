@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
 public class CartController(ICartService cartService) : ControllerBase
 {
     [HttpPost("add")]
-    [Authorize] 
+    [Authorize]
     public async Task<IActionResult> AddToCart(Guid productId, int quantity)
     {
         var value = User.FindFirst("id")?.Value;
@@ -36,7 +37,6 @@ public class CartController(ICartService cartService) : ControllerBase
             return BadRequest(result.Message);
 
         return Ok(result);
-
     }
 
     [HttpDelete("clear")]
@@ -52,5 +52,35 @@ public class CartController(ICartService cartService) : ControllerBase
             return BadRequest(result.Message);
 
         return Ok(result);
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetCartDetails()
+    {
+        var value = User.FindFirst("id")?.Value;
+        if (value == null) return BadRequest("Please login");
+        var userId = Guid.Parse(value);
+        var result = await cartService.GetCartDetailsAsync(userId);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Message);
+        }
+        return Ok(result.Data);
+    }
+
+    [HttpPut("update-cart-quantity ")]
+    [Authorize]
+    public async Task<IActionResult> UpdateCartQuantity(Guid productId, int quantity)
+    {
+        var value = User.FindFirst("id")?.Value;
+        if (value == null) return BadRequest("Please login");
+        var userId = Guid.Parse(value);
+        var result = await cartService.UpdateCartQuantityAsync(userId, productId, quantity);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Message);
+        }
+        return NoContent();
     }
 }

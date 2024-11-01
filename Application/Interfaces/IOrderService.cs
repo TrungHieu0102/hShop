@@ -14,4 +14,6 @@ public interface IOrderService
     Task<PagedResult<OrderDto>> GetAllOrderAsync(int page, int pageSize, bool isDescending);
     Task<Result<OrderDto>> UpdatePaymentStatusAsync(Guid orderId, PaymentStatus newStatus);
     Task<Result<OrderDto>> UpdateOrderStatusAsync(Guid orderId, OrderStatus newStatus);
+    Task<PagedResult<OrderDto>> GetOrdersByStatusAsync(Guid userId, OrderStatus orderStatus, int page, int pageSize,
+        bool isDescending);
 }

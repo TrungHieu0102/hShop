@@ -95,7 +95,6 @@ public class OrderService(
             };
         }
     }
-
     public async Task<Result<OrderDto>> GetOrderAsync(Guid orderId)
     {
         var order = await unitOfWork.Orders.GetOrderById(orderId);
@@ -153,7 +152,6 @@ public class OrderService(
             };
         }
     }
-
     public async Task<PagedResult<OrderDto>> GetOrderByUserClaimAsync(Guid userId, int page, int pageSize,
         bool isDescending)
     {
@@ -335,6 +333,39 @@ public class OrderService(
         };
     }
 
+    public async Task<PagedResult<OrderDto>> GetOrdersByStatusAsync(Guid userId, OrderStatus orderStatus,int page, int pageSize, bool isDescending)
+    {
+        var orders = await unitOfWork.Orders.GetOrderByUserId(userId);
+        if (!orders.Any())
+        {
+            return new PagedResult<OrderDto>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                RowCount = 0,
+                Results = [],
+                IsSuccess = false
+            };
+        }
+        orders = isDescending
+            ? orders.OrderByDescending(o => o.OrderDate)
+            : orders.OrderBy(o => o.OrderDate);
+
+        var totalRows = orders.Count();
+
+        var pagedOrder = orders.Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+        var order = orders.Where(o=>o.OrderStatus == orderStatus).ToList(); 
+        return new PagedResult<OrderDto>
+        {
+            CurrentPage = page,
+            PageSize = pageSize,
+            RowCount = totalRows,
+            Results =  mapper.Map<IEnumerable<OrderDto>>(order),
+            IsSuccess = true
+        };
+    }
     private async Task<List<OrderDetailDto>> GetOrderItemsAsync(Guid orderId)
     {
         // Assuming you have a unit of work or a repository pattern

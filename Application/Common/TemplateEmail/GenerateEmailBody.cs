@@ -19,7 +19,9 @@ public static class GenerateEmailBody
         var itemList = new StringBuilder();
         foreach (var item in items)
         {
-            itemList.AppendLine($"<li>{item.ProductName} - {item.Quantity} - {item.UnitPrice:C}</li>");
+            itemList.AppendLine($"<tr><td>{item.ProductName}</td>" +
+                                $"<td>{item.Quantity}</td>" +
+                                $"<td>{ item.UnitPrice:C}</td></tr>");
         }
 
         body = body.Replace("[Item List]", itemList.ToString());

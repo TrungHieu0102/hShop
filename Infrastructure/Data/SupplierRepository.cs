@@ -7,13 +7,9 @@ using Infrastructure.Repositories;
 
 namespace Infrastructure.Data
 {
-    public class SupplierRepository : RepositoryBase<Supplier, Guid>, ISupplierRepository
+    public class SupplierRepository(HshopContext context, IMapper mapper)
+        : RepositoryBase<Supplier, Guid>(context), ISupplierRepository
     {
-        private readonly IMapper _mapper;
-
-        public SupplierRepository(HshopContext context, IMapper mapper) : base(context)
-        {
-            _mapper = mapper;
-        }
+        private readonly IMapper _mapper = mapper;
     }
 }

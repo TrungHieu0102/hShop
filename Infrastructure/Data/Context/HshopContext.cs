@@ -11,13 +11,8 @@ using System.Reflection.Emit;
 
 namespace Infrastructure.Data.Context
 {
-    public class HshopContext : IdentityDbContext<User, Role, Guid>
+    public class HshopContext(DbContextOptions<HshopContext> options) : IdentityDbContext<User, Role, Guid>(options)
     {
-        public HshopContext(DbContextOptions<HshopContext> options) : base(options)
-        {
-
-        }
-
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
@@ -69,9 +64,12 @@ namespace Infrastructure.Data.Context
 
             builder.Entity<CartItem>()
                 .HasOne(ci => ci.Product)
-                .WithMany(p => p.CartItems) // Thêm thuộc tính CartItems vào lớp Product
+                .WithMany(p => p.CartItems) 
                 .HasForeignKey(ci => ci.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<CartItem>()
+                .Property(c => c.UnitPrice)
+                .HasPrecision(18, 2); 
             
             builder.Entity<OrderDetail>()
                 .HasKey(od => new { od.OrderId, od.ProductId }); // Define composite key

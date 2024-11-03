@@ -6,7 +6,7 @@ namespace Application.DTOs.OrdersDto
     {
         public Guid Id { get; init; }
         public Guid UserId { get; init; }
-        public string? PaymentMethod { get; init; }  // Automatically converts enum to string
+        public string? PaymentMethod { get; init; }
         public string? ShippingProvider { get; init; }
         public DateTime OrderDate { get; init; }
         public string? OrderStatus { get; init; }

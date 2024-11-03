@@ -8,31 +8,24 @@ using Core.Helpers;
 using Core.Interfaces;
 using Core.Model;
 using Microsoft.Extensions.Logging;
+
 namespace Application.Services
 {
-    public class ProductService : IProductService
+    public class ProductService(
+        IUnitOfWorkBase unitOfWork,
+        IMapper mapper,
+        IPhotoService photoService,
+        ICacheService cacheServices,
+        ILogger<IProductService> logger)
+        : IProductService
     {
-        private readonly IUnitOfWorkBase _unitOfWork;
-        private readonly IMapper _mapper;
-        private readonly IPhotoService _photoService;
-        private readonly ICacheService _cacheServices;
-        private readonly ILogger<IProductService> _logger;
-
-        public ProductService(IUnitOfWorkBase unitOfWork, IMapper mapper, IPhotoService photoService, ICacheService cacheServices, ILogger<IProductService> logger)
-        {
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
-            _photoService = photoService;
-            _cacheServices = cacheServices;
-            _logger = logger;
-        }
         public async Task<Result<Product>> AddProductAsync(CreateUpdateProductDto productDto)
         {
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
                 var slug = SlugHelper.GenerateSlug(productDto.Name);
-                if (await _unitOfWork.Products.IsSlugExits(slug))
+                if (await unitOfWork.Products.IsSlugExits(slug))
                 {
                     return new Result<Product>()
                     {
@@ -41,7 +34,7 @@ namespace Application.Services
                     };
                 }
 
-                var product = _mapper.Map<Product>(productDto);
+                var product = mapper.Map<Product>(productDto);
                 product.Slug = slug;
                 product.Id = Guid.NewGuid();
                 product.Images = new List<ProductImage>();
@@ -49,7 +42,7 @@ namespace Application.Services
                 {
                     foreach (var image in productDto.Images)
                     {
-                        var uploadResult = await _photoService.AddPhotoAsync(image, "product");
+                        var uploadResult = await photoService.AddPhotoAsync(image, "product");
                         if (uploadResult.Error == null)
                         {
                             product.Images.Add(new ProductImage
@@ -64,8 +57,8 @@ namespace Application.Services
                     }
                 }
 
-                _unitOfWork.Products.Add(product);
-                await _unitOfWork.CompleteAsync();
+                unitOfWork.Products.Add(product);
+                await unitOfWork.CompleteAsync();
                 await transaction.CommitAsync();
                 return new Result<Product>()
                 {
@@ -74,7 +67,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                logger.LogError(ex.Message);
                 await transaction.RollbackAsync();
                 return new Result<Product>()
                 {
@@ -83,9 +76,10 @@ namespace Application.Services
                 };
             }
         }
+
         public async Task<Result<Product>> UpdateProductWithImagesAsync(Guid id, CreateUpdateProductDto productDto)
         {
-            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
                 var productUpdateResult = await UpdateProductAsync(id, productDto);
@@ -93,14 +87,16 @@ namespace Application.Services
                 {
                     return productUpdateResult;
                 }
+
                 if (productDto.Images.Count != 0)
                 {
-                    var imageUpdateResult = await _photoService.UpdateProductImagesAsync(id, productDto.Images);
+                    var imageUpdateResult = await photoService.UpdateProductImagesAsync(id, productDto.Images);
                     if (!imageUpdateResult.IsSuccess)
                     {
                         return new Result<Product> { IsSuccess = false, Message = "Failed to update product images." };
                     }
                 }
+
                 await transaction.CommitAsync();
                 return productUpdateResult;
             }
@@ -110,31 +106,34 @@ namespace Application.Services
                 return new Result<Product> { IsSuccess = false, Message = ex.Message };
             }
         }
-        public async Task<Result<Product>> UpdateProductAsync(Guid id, CreateUpdateProductDto productDto)
+
+        private async Task<Result<Product>> UpdateProductAsync(Guid id, CreateUpdateProductDto productDto)
         {
             try
             {
-                var product = await _unitOfWork.Products.GetByIdAsync(id);
+                var product = await unitOfWork.Products.GetByIdAsync(id);
                 if (product == null)
                 {
                     return new Result<Product> { IsSuccess = false, Message = "Product not found." };
                 }
 
                 var slug = SlugHelper.GenerateSlug(productDto.Name);
-                if (await _unitOfWork.Products.IsSlugExits(slug))
+                if (await unitOfWork.Products.IsSlugExits(slug))
                 {
                     return new Result<Product> { IsSuccess = false, Message = "Slug already exists." };
                 }
-                _mapper.Map(productDto, product);
+
+                mapper.Map(productDto, product);
                 product.Slug = slug;
                 var cachKey = $"Product_{id}";
-                var cache = await _cacheServices.GetCachedDataAsync<Product>(cachKey);
+                var cache = await cacheServices.GetCachedDataAsync<Product>(cachKey);
                 if (cache != null)
                 {
-                    await _cacheServices.RemoveCachedDataAsync(cachKey);
+                    await cacheServices.RemoveCachedDataAsync(cachKey);
                 }
-                _unitOfWork.Products.Update(product);
-                await _unitOfWork.CompleteAsync();
+
+                unitOfWork.Products.Update(product);
+                await unitOfWork.CompleteAsync();
 
                 return new Result<Product> { IsSuccess = true, Data = product };
             }
@@ -143,34 +142,38 @@ namespace Application.Services
                 return new Result<Product> { IsSuccess = false, Message = ex.Message };
             }
         }
+
         public async Task<bool> DeleteProductAsync(Guid id)
         {
-           await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await unitOfWork.BeginTransactionAsync();
             try
             {
-                var product = await _unitOfWork.Products.GetProductWithImagesByIdAsync(id);
+                var product = await unitOfWork.Products.GetProductWithImagesByIdAsync(id);
                 if (product == null)
                 {
                     return false;
                 }
+
                 if (product.Images != null && product.Images.Count != 0)
                 {
                     foreach (var image in product.Images)
                     {
                         var publicId = PhotoExtensions.ExtractPublicId(image.ImageUrl);
-                        await _photoService.DeletePhotoAsync("product", publicId);
-                        _unitOfWork.Images.Delete(image);
+                        await photoService.DeletePhotoAsync("product", publicId);
+                        unitOfWork.Images.Delete(image);
                     }
                 }
+
                 var cacheKey = $"Product_{id}";
-                var cache = await _cacheServices.GetCachedDataAsync<Product>(cacheKey);
+                var cache = await cacheServices.GetCachedDataAsync<Product>(cacheKey);
                 if (cache != null)
                 {
-                    await _cacheServices.RemoveCachedDataAsync(cacheKey);
+                    await cacheServices.RemoveCachedDataAsync(cacheKey);
                 }
-                _unitOfWork.Products.Delete(product);
 
-                var result = await _unitOfWork.CompleteAsync();
+                unitOfWork.Products.Delete(product);
+
+                var result = await unitOfWork.CompleteAsync();
                 await transaction.CommitAsync();
                 return result > 0;
             }
@@ -180,21 +183,26 @@ namespace Application.Services
                 return false;
             }
         }
-        public async Task<PagedResult<ProductInListDto>> GetAllProductsAsync(int page, int pageSize, string search, bool isDescending = false)
+
+        public async Task<PagedResult<ProductInListDto>> GetAllProductsAsync(int page, int pageSize, string search,
+            bool isDescending = false)
         {
             try
             {
-                var productsQuery = await _unitOfWork.Products.GetProductsWithImagesAsync();
+                var productsQuery = await unitOfWork.Products.GetProductsWithImagesAsync();
 
                 if (!string.IsNullOrEmpty(search))
                 {
-                    productsQuery = productsQuery.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+                    productsQuery =
+                        productsQuery.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
                 }
 
-                productsQuery = isDescending ? productsQuery.OrderByDescending(p => p.Name) : productsQuery.OrderBy(p => p.Name);
+                productsQuery = isDescending
+                    ? productsQuery.OrderByDescending(p => p.Name)
+                    : productsQuery.OrderBy(p => p.Name);
 
                 var enumerable = productsQuery as Product[] ?? productsQuery.ToArray();
-                var totalRows =  enumerable.Count();
+                var totalRows = enumerable.Count();
 
                 var pagedProducts = enumerable
                     .Skip((page - 1) * pageSize)
@@ -228,7 +236,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while getting products.");
+                logger.LogError(ex, "An error occurred while getting products.");
                 return new PagedResult<ProductInListDto>
                 {
                     CurrentPage = page,
@@ -240,11 +248,12 @@ namespace Application.Services
             }
         }
 
-        public async Task<PagedResult<ProductDto>> GetProductByCategoryAsync(Guid categoryId, int page, int pageSize, bool isDescending)
+        public async Task<PagedResult<ProductDto>> GetProductByCategoryAsync(Guid categoryId, int page, int pageSize,
+            bool isDescending)
         {
             try
             {
-                var products = await _unitOfWork.Products.GetByCategoryIdAsync(categoryId);
+                var products = await unitOfWork.Products.GetByCategoryIdAsync(categoryId);
                 products = isDescending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
                 var totalRows = products.Count();
                 var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -253,13 +262,13 @@ namespace Application.Services
                     CurrentPage = page,
                     PageSize = pageSize,
                     RowCount = totalRows,
-                    Results = _mapper.Map<IEnumerable<ProductDto>>(pagedProducts),
+                    Results = mapper.Map<IEnumerable<ProductDto>>(pagedProducts),
                     IsSuccess = true
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError("An error occurred while creating the order: {ErrorMessage}", ex.Message);
+                logger.LogError("An error occurred while creating the order: {ErrorMessage}", ex.Message);
                 return new PagedResult<ProductDto>
                 {
                     CurrentPage = page,
@@ -270,12 +279,13 @@ namespace Application.Services
                 };
             }
         }
+
         public async Task<Result<ProductDto>> GetProductByIdAsync(Guid id)
         {
             try
             {
                 var cacheKey = $"Product_{id}";
-                var cacheResult = await _cacheServices.GetCachedDataAsync<ProductDto>(cacheKey);
+                var cacheResult = await cacheServices.GetCachedDataAsync<ProductDto>(cacheKey);
                 if (cacheResult != null)
                 {
                     return new Result<ProductDto>
@@ -284,9 +294,10 @@ namespace Application.Services
                         Data = cacheResult
                     };
                 }
-                var product = await _unitOfWork.Products.GetProductWithImagesByIdAsync(id);
-                var productDto = _mapper.Map<ProductDto>(product);
-                await _cacheServices.SetCachedDataAsync(cacheKey, productDto);
+
+                var product = await unitOfWork.Products.GetProductWithImagesByIdAsync(id);
+                var productDto = mapper.Map<ProductDto>(product);
+                await cacheServices.SetCachedDataAsync(cacheKey, productDto);
                 return new Result<ProductDto>
                 {
                     IsSuccess = true,
@@ -302,11 +313,13 @@ namespace Application.Services
                 };
             }
         }
-        public async Task<PagedResult<ProductInListDto>> SearchProductByNameAsync(string name, int page, int pageSize, bool isDescending)
+
+        public async Task<PagedResult<ProductInListDto>> SearchProductByNameAsync(string name, int page, int pageSize,
+            bool isDescending)
         {
             try
             {
-                var products = await _unitOfWork.Products.SearchByNameAsync(name);
+                var products = await unitOfWork.Products.SearchByNameAsync(name);
                 products = isDescending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
                 var totalRows = products.Count();
                 var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -315,14 +328,13 @@ namespace Application.Services
                     CurrentPage = page,
                     PageSize = pageSize,
                     RowCount = totalRows,
-                    Results = _mapper.Map<IEnumerable<ProductInListDto>>(pagedProducts),
+                    Results = mapper.Map<IEnumerable<ProductInListDto>>(pagedProducts),
                     IsSuccess = true
                 };
-
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                logger.LogError(ex.Message);
                 return new PagedResult<ProductInListDto>
                 {
                     CurrentPage = page,
@@ -330,6 +342,97 @@ namespace Application.Services
                     RowCount = 0,
                     Results = new List<ProductInListDto>(),
                     IsSuccess = false
+                };
+            }
+        }
+
+        public async Task<PagedResult<ProductInListDto>> GetTopProductsAsync(int topCount,
+            ProductSortCriteria sortCriteria, bool isDescending)
+        {
+            try
+            {
+                var products = await unitOfWork.Products.GetAllAsync();
+
+                var productsQuery = products.AsQueryable();
+
+                var sortExpressions =
+                    new Dictionary<ProductSortCriteria, Func<IQueryable<Product>, IOrderedQueryable<Product>>>
+                    {
+                        {
+                            ProductSortCriteria.CreatedDate,
+                            q => isDescending ? q.OrderByDescending(p => p.DateCreated) : q.OrderBy(p => p.DateCreated)
+                        },
+                        {
+                            ProductSortCriteria.ViewCount,
+                            q => isDescending ? q.OrderByDescending(p => p.ViewCount) : q.OrderBy(p => p.ViewCount)
+                        },
+                        {
+                            ProductSortCriteria.Name,
+                            q => isDescending ? q.OrderByDescending(p => p.Name) : q.OrderBy(p => p.Name)
+                        }
+                    };
+
+                if (sortExpressions.TryGetValue(sortCriteria, out var sortExpression))
+                {
+                    productsQuery = sortExpression(productsQuery);
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(sortCriteria), sortCriteria, null);
+                }
+
+                var topProducts = productsQuery.Take(topCount).ToList();
+
+                var pagedResult = new PagedResult<ProductInListDto>
+                {
+                    IsSuccess = true,
+                    Results = mapper.Map<List<ProductInListDto>>(topProducts),
+                };
+                return pagedResult;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                var pagedResult = new PagedResult<ProductInListDto>
+                {
+                    IsSuccess = false,
+                    PageSize = topCount,
+                    CurrentPage = 0,
+                    AdditionalData = e.Message
+                };
+                return pagedResult;
+            }
+        }
+
+        public async Task<PagedResult<ProductInListDto>> GetProductBySupplier(Guid supplierId, int page, int pageSize,
+            bool isDescending)
+        {
+            try
+            {
+                var products = await unitOfWork.Products.GetAllAsync();
+                products = products.Where(p => p.SupplierId == supplierId);
+                products = isDescending ? products.OrderByDescending(p => p.Name) : products.OrderBy(p => p.Name);
+                var totalRows = products.Count();
+                var pagedProducts = products.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                return new PagedResult<ProductInListDto>
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    RowCount = totalRows,
+                    Results = mapper.Map<IEnumerable<ProductInListDto>>(pagedProducts),
+                    IsSuccess = true
+                };
+            }
+            catch (Exception e)
+            {
+                return new PagedResult<ProductInListDto>()
+                {
+                    CurrentPage = page,
+                    PageSize = 1,
+                    RowCount = 0,
+                    Results = [],
+                    IsSuccess = false,
+                    AdditionalData = e.Message
                 };
             }
         }

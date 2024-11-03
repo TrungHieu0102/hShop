@@ -10,27 +10,24 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
-    public class SupplierService : ISupplierService
+    public class SupplierService(
+        IUnitOfWorkBase unitOfWork,
+        IPhotoService photoService,
+        ICacheService cacheService,
+        IMapper mapper,
+        ILogger<ISupplierService> logger)
+        : ISupplierService
     {
-        private readonly IUnitOfWorkBase _unitOfWork;
-        private readonly IPhotoService _photoService;
-        private readonly ICacheService _cacheService;
-        private readonly IMapper _mapper;
-        private readonly ILogger<ISupplierService> _logger;
+        private readonly IUnitOfWorkBase _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        private readonly IPhotoService _photoService = photoService ?? throw new ArgumentNullException(nameof(photoService));
+        private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
+        private readonly IMapper _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        private readonly ILogger<ISupplierService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-
-        public SupplierService(IUnitOfWorkBase unitOfWork, IPhotoService photoService, ICacheService cacheService, IMapper mapper, ILogger<ISupplierService> logger)
-        {
-            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-            _photoService = photoService ?? throw new ArgumentNullException(nameof(photoService));
-            _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
 
         public async Task<Result<SupplierDto>> AddSupplier(CreateUpdateSupplierDto request)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
                 var supplier = _mapper.Map<Supplier>(request);
@@ -62,10 +59,14 @@ namespace Application.Services
 
         public async Task<Result<SupplierDto>> DeleteSupplier(Guid id)
         {
-            using var transaction = await _unitOfWork.BeginTransactionAsync();
+           await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var supplier = await _unitOfWork.Suppliers.GetByIdAsync(id) ?? throw new InvalidOperationException("Supplier not found.");
+                var cacheKey = $"Supplier:{id}";
+                var cacheItem =await cacheService.GetCachedDataAsync<SupplierDto>(cacheKey);
+                var supplier = mapper.Map<Supplier>(cacheItem) 
+                               ?? await _unitOfWork.Suppliers.GetByIdAsync(id)
+                               ?? throw new Exception($"Supplier with id: {id} could not be found");
                 if (supplier.Logo != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(supplier.Logo);
@@ -74,6 +75,7 @@ namespace Application.Services
                 _unitOfWork.Suppliers.Delete(supplier);
                 await _unitOfWork.CompleteAsync();
                 await transaction.CommitAsync();
+                await _cacheService.RemoveCachedDataAsync(cacheKey);
                 return new Result<SupplierDto>
                 {
                     IsSuccess = true,
@@ -92,7 +94,7 @@ namespace Application.Services
             }
         }
 
-        public async Task<PagedResult<SupplierInListDto>> GetAllAsync(int page, int pageSize, string search , bool IsDecsending = false)
+        public async Task<PagedResult<SupplierInListDto>> GetAllAsync(int page, int pageSize, string search , bool isDecsending = false)
         {
             try
             {
@@ -103,7 +105,7 @@ namespace Application.Services
                     suppliers = suppliers.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
                 }
 
-                suppliers = IsDecsending ? suppliers.OrderByDescending(p => p.Name) : suppliers.OrderBy(p => p.Name);
+                suppliers = isDecsending ? suppliers.OrderByDescending(p => p.Name) : suppliers.OrderBy(p => p.Name);
 
                 var totalRows = suppliers.Count();
 
@@ -137,29 +139,16 @@ namespace Application.Services
             try
             {
                 var cacheKey = $"Supplier-{id}";
-                var supplier = await _cacheService.GetCachedDataAsync<SupplierDto>(cacheKey);
-                if (supplier != null)
-                {
-                    return new Result<SupplierDto>
-                    {
-                        IsSuccess = true,
-                        Data = supplier
-                    };
-                }
-                supplier = _mapper.Map<SupplierDto>(await _unitOfWork.Suppliers.GetByIdAsync(id));
-                if (supplier == null)
-                {
-                    return new Result<SupplierDto>
-                    {
-                        IsSuccess = false,
-                        Message = "Supplier not found."
-                    };
-                }
+                var cachedItem = await _cacheService.GetCachedDataAsync<SupplierDto>(cacheKey);
+                var supplier = mapper.Map<Supplier>(cachedItem)
+                               ?? await unitOfWork.Suppliers.GetByIdAsync(id)
+                               ?? throw new Exception("Supplier not found");
+                var response = mapper.Map<SupplierDto>(supplier);
                 await _cacheService.SetCachedDataAsync(cacheKey, supplier);
                 return new Result<SupplierDto>
                 {
                     IsSuccess = true,
-                    Data = supplier
+                    Data = response
                 };
             }
             catch (Exception ex)
@@ -177,7 +166,11 @@ namespace Application.Services
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var supplier = await _unitOfWork.Suppliers.GetByIdAsync(id) ?? throw new Exception("Supplier not found.");
+                var cacheKey = $"Supplier-{id}";
+                var cacheItem =await cacheService.GetCachedDataAsync<SupplierDto>(cacheKey);
+                var supplier = mapper.Map<Supplier>(cacheItem) 
+                               ?? await _unitOfWork.Suppliers.GetByIdAsync(id) 
+                               ?? throw new Exception("Supplier not found.");
                 if (supplier.Logo != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(supplier.Logo);
@@ -191,11 +184,11 @@ namespace Application.Services
                     supplier.Logo = uploadResult.SecureUrl.ToString();
                 }
 
-                var cacheKey = $"Supplier-{id}";
                 if (await _cacheService.GetCachedDataAsync<SupplierDto>(cacheKey) != null)
                 {
                     await _cacheService.RemoveCachedDataAsync(cacheKey);
                 }
+                unitOfWork.Suppliers.Update(supplier);    
                 var result = await _unitOfWork.CompleteAsync();
                 if (result == 0)
                 {

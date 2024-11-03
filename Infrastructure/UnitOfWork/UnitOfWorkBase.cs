@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Data.Context;
@@ -17,7 +18,7 @@ namespace Infrastructure.UnitOfWork
         public IImageRepository Images { get; set; }
         public ICartRepository Carts { get; set; }
         public IOrderRepository Orders { get; set; }
-
+        public IUserRepository Users { get; set; }
         public UnitOfWorkBase(HshopContext context, IMapper mapper)
         {
             _context = context;
@@ -27,6 +28,7 @@ namespace Infrastructure.UnitOfWork
             Images = new ImageRepository(_context);
             Carts = new CartRepository(_context);
             Orders = new OrderRepository(_context);
+            Users = new UserRepository(_context);
         }
 
         public async Task<int> CompleteAsync()

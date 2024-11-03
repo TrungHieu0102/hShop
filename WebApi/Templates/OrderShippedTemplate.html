@@ -76,13 +76,29 @@
         .button:hover {
             background-color: #0056b3;
         }
-        .item-list {
-            list-style-type: none;
-            padding: 0;
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
         }
-        .item-list li {
-            padding: 10px 0;
-            border-bottom: 1px solid #ddd;
+
+        .item-table th, .item-table td {
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            text-align: left; 
+        }
+
+        .item-table th {
+            background-color: #f4f4f4; 
+            color: #333; 
+        }
+
+        .item-table tr:nth-child(even) {
+            background-color: #f9f9f9; 
+        }
+
+        .item-table tr:hover {
+            background-color: #f1f1f1; 
         }
         .highlight {
             background-color: #e7f3ff;
@@ -103,7 +119,7 @@
     </div>
     <h1>Đơn hàng của bạn đã được gửi!</h1>
     <p>Xin chào {{UserName}}</p>
-    <p>Chúng tôi rất vui mừng thông báo rằng đơn hàng <strong>#{{OrderId}}</strong> của bạn đã được gửi đi! 🎉</p>
+    <p>Chúng tôi rất vui mừng thông báo rằng đơn hàng <strong>#{{OrderId}}</strong> của bạn đã giao thành công! 🎉</p>
 
     <h2>Thông tin giao hàng:</h2>
     <p><strong>Vận chuyển bởi:</strong> Giao Hàng Nhanh</p>
@@ -113,9 +129,18 @@
     <div class="order-summary">
         <h2>Tóm tắt đơn hàng:</h2>
         <p><strong>Hàng hóa:</strong></p>
-        <ul class="item-list">
+        <table class="item-table">
+            <thead>
+            <tr>
+                <th>Tên sản phẩm</th>
+                <th>Số lượng</th>
+                <th>Thành tiền</th>
+            </tr>
+            </thead>
+            <tbody>
             [Item List]
-        </ul>
+            </tbody>
+        </table>
         <p><strong>Tổng số tiền:</strong> [Total Amount]</p>
     </div>
 

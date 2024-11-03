@@ -15,6 +15,8 @@ namespace Application.Mappings
     {
         public MapperProfile()
         {
+            CreateMap<User, UserDto>().ReverseMap();
+            CreateMap<User,UpdateUserRequest>().ReverseMap();
             CreateMap<Product, ProductDto>()
                .ForMember(dest => dest.Images, opt => opt
              .MapFrom(src => src.Images.Select(img => new ProductImageDto
@@ -46,10 +48,11 @@ namespace Application.Mappings
                 .ForMember(dest => dest.OrderDetails, opt => opt.MapFrom(src => new List<OrderDetail>())); // Khởi tạo OrderDetails rỗng
             CreateMap<OrderDetailDto, OrderDetail>();
             CreateMap<Order, OrderDto>()
-                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod.ToString()))
-                .ForMember(dest => dest.ShippingProvider, opt => opt.MapFrom(src => src.ShippingProvider.ToString()))
-                .ForMember(dest => dest.OrderStatus, opt => opt.MapFrom(src => src.OrderStatus.ToString()))
-                .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.PaymentStatus.ToString()));
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod.ToString())).ReverseMap()
+                .ForMember(dest => dest.ShippingProvider, opt => opt.MapFrom(src => src.ShippingProvider.ToString())).ReverseMap()
+                .ForMember(dest => dest.OrderStatus, opt => opt.MapFrom(src => src.OrderStatus.ToString())).ReverseMap()
+                .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.PaymentStatus.ToString())).ReverseMap()
+                .ForMember(dest => dest.OrderDetails, opt => opt.MapFrom(src => src.OrderDetails));
             CreateMap<OrderDetail, OrderDetailDto>();
             CreateMap<SignInDto, User>().ReverseMap();
             CreateMap<RoleDto, Role>().ReverseMap();
@@ -64,7 +67,7 @@ namespace Application.Mappings
                        ProductName = c.ProductName,
                        Quantity = c.Quantity,
                        UnitPrice = c.UnitPrice
-                    })));
+                    }))).ReverseMap();
             CreateMap<CartItem,CartItemsDto>().ReverseMap();
         }
     }

@@ -9,7 +9,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Services;
 
-public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapper mapper) : ICartService
+public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapper mapper, ICacheService cacheService)
+    : ICartService
 {
     public async Task<Result<Cart>> AddToCartAsync(Guid userId, Guid productId, int quantity)
     {
@@ -43,7 +44,6 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
             }
             else
             {
-                // Tạo mới cart item
                 var newCartItem = new CartItem
                 {
                     CartId = cart.Id,
@@ -55,6 +55,8 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
                 await unitOfWork.Carts.AddCartItemAsync(newCartItem);
             }
 
+            var cacheKey = $"Cart-{userId}";
+            await cacheService.RemoveCachedDataAsync(cacheKey);
             await transaction.CommitAsync();
             return new Result<Cart>()
             {
@@ -73,13 +75,14 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
             };
         }
     }
-
     public async Task<Result<Cart>> RemoveFromCartAsync(Guid userId, Guid productId)
     {
         await using var transaction = await unitOfWork.BeginTransactionAsync();
         try
         {
-            var cart = await unitOfWork.Carts.GetCartWithItemsAsync(userId);
+            var cacheKey = $"Cart-{userId}";
+            var cartInCache = await cacheService.GetCachedDataAsync<CartDto>(cacheKey);
+            var cart = mapper.Map<Cart>(cartInCache) ?? await unitOfWork.Carts.GetCartWithItemsAsync(userId);
             if (cart == null)
             {
                 return new Result<Cart>()
@@ -91,8 +94,10 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
 
             if (cart.Items.Count == 1 && cart.Items.Any(x => x.ProductId == productId))
             {
-                await unitOfWork.Carts.ClearCartAsync(cart.Id);
+                await unitOfWork.Carts.ClearCartAsync(userId);
+                await unitOfWork.CompleteAsync();
                 await transaction.CommitAsync();
+                await cacheService.RemoveCachedDataAsync(cacheKey);
                 return new Result<Cart>()
                 {
                     IsSuccess = true,
@@ -101,7 +106,7 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
             }
 
             var cartItem = cart.Items
-                .FirstOrDefault(x => x.CartId == cart.Id && x.ProductId == productId);
+                .FirstOrDefault(x => x.ProductId == productId);
 
             if (cartItem == null)
             {
@@ -114,7 +119,7 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
 
             await unitOfWork.Carts.RemoveCartItemAsync(cartItem);
             await transaction.CommitAsync();
-
+            await cacheService.RemoveCachedDataAsync(cacheKey);
             return new Result<Cart>()
             {
                 IsSuccess = true,
@@ -138,7 +143,9 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
         await using var transaction = await unitOfWork.BeginTransactionAsync();
         try
         {
-            var cart = await unitOfWork.Carts.GetCartByUserId(userId, false);
+            var cacheKey = $"Cart-{userId}";
+            var cartInCache = await cacheService.GetCachedDataAsync<CartDto>(cacheKey);
+            var cart = mapper.Map<Cart>(cartInCache) ?? await unitOfWork.Carts.GetCartWithItemsAsync(userId);
             if (cart == null)
             {
                 return new Result<Cart>()
@@ -148,8 +155,10 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
                 };
             }
 
-            await unitOfWork.Carts.ClearCartAsync(cart.Id);
+            await unitOfWork.Carts.ClearCartAsync(userId);
+            await unitOfWork.CompleteAsync();
             await transaction.CommitAsync();
+            await cacheService.RemoveCachedDataAsync(cacheKey);
             return new Result<Cart>()
             {
                 IsSuccess = true,
@@ -172,7 +181,9 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
     {
         try
         {
-            var cart = await unitOfWork.Carts.GetCartByUserId(userId, true);
+            var cacheKey = $"Cart-{userId}";
+            var cartInCache = await cacheService.GetCachedDataAsync<CartDto>(cacheKey);
+            var cart = mapper.Map<Cart>(cartInCache) ?? await unitOfWork.Carts.GetCartWithItemsAsync(userId);
             if (cart == null)
             {
                 return new Result<CartDto>()
@@ -194,6 +205,7 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
                     UnitPrice = ci.UnitPrice
                 }).ToList()
             };
+            await cacheService.SetCachedDataAsync(cacheKey, cartDto);
             return new Result<CartDto>()
             {
                 IsSuccess = true,
@@ -216,7 +228,9 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
         await using var transaction = await unitOfWork.BeginTransactionAsync();
         try
         {
-            var cart = await unitOfWork.Carts.GetCartByUserId(userId, true);
+            var cacheKey = $"Cart-{userId}";
+            var cartInCache = await cacheService.GetCachedDataAsync<CartDto>(cacheKey);
+            var cart = mapper.Map<Cart>(cartInCache) ?? await unitOfWork.Carts.GetCartWithItemsAsync(userId);
             if (cart == null)
             {
                 return new Result<Cart>()
@@ -225,6 +239,7 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
                     Message = "User not found"
                 };
             }
+
             var cartItem = await unitOfWork.Carts.GetCartItemAsync(cart.Id, productId);
             if (cartItem == null)
             {

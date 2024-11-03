@@ -40,9 +40,9 @@ namespace Infrastructure.Data
                 await _context.SaveChangesAsync();
             }
         }
-        public async Task ClearCartAsync(Guid cartId)
+        public async Task ClearCartAsync(Guid userId)
         {
-            var cart = await _context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == cartId);
+            var cart = await _context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
             if (cart != null)
             {
                 _context.CartItems.RemoveRange(cart.Items);

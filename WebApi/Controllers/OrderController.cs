@@ -126,5 +126,27 @@ public class OrderController(IOrderService orderService) : ControllerBase
         }
         return Ok(result.Results);
     }
+    [HttpPut("UpdateOrder{orderId}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateOrder(Guid orderId, CreateUpdateOrderDto createUpdateOrderDto)
+    {
+        var result = await orderService.UpdateOrderAsync(orderId, createUpdateOrderDto);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Message);
+        }
+        return Ok(result.Data);
+    }
+    [HttpDelete]
+    [Authorize]
+    public async Task<IActionResult> DeleteAllOrderCanceled()
+    {
+        var result = await orderService.DeleteAllOrderCanceled();
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Message);
+        }
+        return Ok("Order deleted");
+    }
 
 }

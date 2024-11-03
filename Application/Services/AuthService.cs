@@ -36,63 +36,43 @@ namespace Application.Services
     {
         public async Task<AuthResponseDto> SignInAsycn(SignInDto signInDto)
         {
-            var user = await userManager.FindByEmailAsync(signInDto.Email);
-            if (user == null || !await userManager.CheckPasswordAsync(user, signInDto.Password))
+            try
             {
-                return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
+                var user = await userManager.FindByEmailAsync(signInDto.Email);
+                if (user != null)
+                {
+                    var loginProvider = await userManager.GetLoginsAsync(user);
+                    if (loginProvider.Count > 0 && !user.EmailConfirmed)
+                    {
+                        throw new Exception($"Please login by {loginProvider.First().ProviderDisplayName} or click forgotten password");
+                    }
+                }
+                if (user == null || !await userManager.CheckPasswordAsync(user, signInDto.Password))
+                {
+                    throw new Exception("Wrong email or password");
+                }
+                var result = await signInManager.PasswordSignInAsync(signInDto.Email, signInDto.Password, false, false);
+                var emailConfirmed = await userManager.IsEmailConfirmedAsync(user);
+                if (!result.Succeeded)
+                {
+                    throw new Exception("Invalid Email or Password");
+                }
+                if (!emailConfirmed)
+                {
+                    await emailService.SendConfirmationEmail(signInDto.Email, user);
+                    throw new Exception("Please confirm your email");
+                }
+                return await GenerateUserToken(user);
             }
-            var result = await signInManager.PasswordSignInAsync(signInDto.Email, signInDto.Password, false, false);
-            var emailConfirmed = await userManager.IsEmailConfirmedAsync(user);
-            if (!result.Succeeded)
+            catch (Exception e)
             {
-                return new AuthResponseDto { IsSuccess = false, Message = "Invalid Email or Password" };
+               logger.LogError(e.Message);
+               return new AuthResponseDto()
+               {
+                   IsSuccess = false,
+                   Message = e.Message
+               };
             }
-            if (!emailConfirmed)
-            {
-                await emailService.SendConfirmationEmail(signInDto.Email, user);
-                return new AuthResponseDto { IsSuccess = false, Message = "Please confirm your email " };
-            }
-            var roles = await userManager.GetRolesAsync(user);
-
-            var permission = await GetPermissionAsync(user.Id.ToString());
-            var authClaims = new List<Claim>
-            {
-                new(JwtRegisteredClaimNames.Email, user.Email!),
-                    new Claim(UserClaims.Id, user.Id.ToString()),
-                    new Claim(ClaimTypes.NameIdentifier, user.Email!),
-                    new Claim(ClaimTypes.Name, user.UserName!),
-                    new Claim(UserClaims.FirstName, user.FirstName),
-                    new Claim(UserClaims.Roles, string.Join(";", roles)),
-                    new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-            var userRole = await userManager.GetRolesAsync(user);
-            authClaims.AddRange(userRole.Select(role => new Claim(ClaimTypes.Role, role)));
-            var jwtKey = configuration["JWT:Key"];
-            if (string.IsNullOrEmpty(jwtKey))
-            {
-                throw new InvalidOperationException("JWT Key is not configured.");
-            }
-            var authKey = Encoding.UTF8.GetBytes(jwtKey);
-            var token = new JwtSecurityToken(
-                issuer: configuration["JWT:Issuer"],
-                audience: configuration["JWT:Audience"],
-                claims: authClaims,
-                expires: DateTime.Now.AddMinutes(30),
-                signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey), SecurityAlgorithms.HmacSha256)
-            );
-
-            var refreshToken = RefreshToken.GenerateRefreshToken();
-            await SaveRefreshToken(user.Id, refreshToken);
-
-            return new AuthResponseDto
-            {
-                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-                RefreshToken = refreshToken,
-                IsSuccess = true,
-                Message = string.Empty,
-                Expiration = user.RefreshTokenExpiryTime ?? DateTime.MinValue
-            };
         }
         public async Task<(bool, string)> SignUpAsync(SignUpDto signUpDto)
         {
@@ -156,33 +136,6 @@ namespace Application.Services
                     return "Email not confirmed";
                 }
             }
-        }
-        private async Task<List<string>> GetPermissionAsync(string userId)
-        {
-            var user = await userManager.FindByIdAsync(userId);
-            var roles = await userManager.GetRolesAsync(user!);
-            var permissions = new List<string>();
-            var allPermissions = new List<RoleClaimsDto>();
-            if (roles.Contains(Roles.Admin))
-            {
-                var types = typeof(Permissions).GetTypeInfo().DeclaredNestedTypes;
-                foreach (var type in types)
-                {
-                    allPermissions.GetPermissions(type);
-                }
-                permissions.AddRange(allPermissions.Select(x => x.Value));
-            }
-            else
-            {
-                foreach (var roleName in roles)
-                {
-                    var role = await roleManager.FindByNameAsync(roleName);
-                    var claims = await roleManager.GetClaimsAsync(role!);
-                    var roleClaimValues = claims.Select(x => x.Value).ToList();
-                    permissions.AddRange(roleClaimValues);
-                }
-            }
-            return permissions.Distinct().ToList();
         }
         public async Task<IdentityResult> RequestPasswordChangeAsync(string mail, ClaimsPrincipal user)
         {
@@ -258,6 +211,34 @@ namespace Application.Services
                 throw new Exception("Authentication failed. Please try again later.");
             }
         }
+        #region Private Methods
+        private async Task<List<string>> GetPermissionAsync(string userId)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            var roles = await userManager.GetRolesAsync(user!);
+            var permissions = new List<string>();
+            var allPermissions = new List<RoleClaimsDto>();
+            if (roles.Contains(Roles.Admin))
+            {
+                var types = typeof(Permissions).GetTypeInfo().DeclaredNestedTypes;
+                foreach (var type in types)
+                {
+                    allPermissions.GetPermissions(type);
+                }
+                permissions.AddRange(allPermissions.Select(x => x.Value));
+            }
+            else
+            {
+                foreach (var roleName in roles)
+                {
+                    var role = await roleManager.FindByNameAsync(roleName);
+                    var claims = await roleManager.GetClaimsAsync(role!);
+                    var roleClaimValues = claims.Select(x => x.Value).ToList();
+                    permissions.AddRange(roleClaimValues);
+                }
+            }
+            return permissions.Distinct().ToList();
+        }
         private async Task<User> GetOrCreateExternalLoginUser(string provider, string key, string email, string firstName, string lastName)
         {
             try
@@ -305,7 +286,6 @@ namespace Application.Services
                 throw;
             }
         }
-        #region Private Methods
         private async Task<AuthResponseDto> GenerateUserToken(User user)
         {
             try
@@ -339,7 +319,7 @@ namespace Application.Services
                     issuer: configuration["JWT:Issuer"],
                     audience: configuration["JWT:Audience"],
                     claims: authClaims,
-                    expires: DateTime.Now.AddMinutes(30),
+                    expires: DateTime.Now.AddDays(1),
                     signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey), SecurityAlgorithms.HmacSha256)
                 );
 
@@ -361,9 +341,8 @@ namespace Application.Services
                 throw new Exception("Token generation failed. Please try again later.");
             }
         }
-
         #endregion
-
+    
     }
 }
 

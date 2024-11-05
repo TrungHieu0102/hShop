@@ -7,17 +7,18 @@ namespace WebApi.Controllers
     [Route("api/[controller]")]
     public class PaymentController : ControllerBase
     {
-        private readonly IPaymentService _paymentService;
-
-        public PaymentController(IPaymentService paymentService)
+        private readonly IPaypalService _paypalService;
+        private readonly IVnPayService _vnPayService;
+        public PaymentController(IPaypalService paypalService, IVnPayService vnPayService)
         {
-            _paymentService = paymentService;
+            _paypalService = paypalService;
+            _vnPayService = vnPayService;
         }
 
-        [HttpPost("create-payment/{orderId}")]
+        [HttpPost("paypal-create-payment/{orderId}")]
         public async Task<IActionResult> CreatePayment(Guid orderId)
         {
-            var result = await _paymentService.CreatePaymentAsync(orderId);
+            var result = await _paypalService.CreatePaymentAsync(orderId);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -26,10 +27,10 @@ namespace WebApi.Controllers
             return Ok(new { redirectUrl = result.Data });
         }
 
-        [HttpGet("execute-payment")]
+        [HttpGet("paypal-execute-payment")]
         public async Task<IActionResult> ExecutePayment(string paymentId, string payerId, Guid orderId)
         {
-            var result = await _paymentService.ExecutePaymentAsync(paymentId, payerId, orderId);
+            var result = await _paypalService.ExecutePaymentAsync(paymentId, payerId, orderId);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -38,10 +39,40 @@ namespace WebApi.Controllers
             return Ok(new { Message = result.Message });
         }
 
-        [HttpGet("cancel")]
+        [HttpGet("paypal-cancel")]
         public IActionResult Cancel()
         {
             return BadRequest("Payment was canceled.");
         }
+
+        [HttpPost("vnpay-create-payment")]
+        public async Task<IActionResult> CreatePaymentUrl([FromBody] Guid orderId)
+        {
+            try
+            {
+                var paymentUrl = await _vnPayService.CreatePaymentUrl(HttpContext, orderId);
+                return Ok(new { PaymentUrl = paymentUrl });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+    
+        [HttpGet("vnpay-payment-callback")]
+        public async Task<IActionResult> PaymentCallBack()
+        {
+            var response = await _vnPayService.PaymentExecute(Request.Query);
+            if (response.Success)
+            {
+                return Ok(new { Message = "Payment successful", Data = response });
+            }
+            else
+            {
+                return BadRequest(new { Message = "Payment failed." });
+            }
+        }
+
     }
 }

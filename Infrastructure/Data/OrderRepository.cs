@@ -5,6 +5,7 @@ using Core.Interfaces;
 using Infrastructure.Data.Context;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 #nullable  disable
 namespace Infrastructure.Data
 {
@@ -38,6 +39,14 @@ namespace Infrastructure.Data
         public async Task<IEnumerable<Order>> GetAllOrderAsync()
         {
            return await _context.Orders.Include(p=>p.OrderDetails).ToListAsync();
+        }
+        public void Attach(Order order)
+        {
+            _context.Orders.Attach(order);
+        }
+        public EntityEntry<Order> Entry(Order order)
+        {
+            return _context.Entry(order);
         }
     }
 }

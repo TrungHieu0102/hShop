@@ -1,9 +1,7 @@
 ﻿using AutoMapper;
-using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Data.Context;
-using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore.Storage;
 
 
@@ -19,6 +17,7 @@ namespace Infrastructure.UnitOfWork
         public ICartRepository Carts { get; set; }
         public IOrderRepository Orders { get; set; }
         public IUserRepository Users { get; set; }
+        public ITransactionRepository Transactions { get; set; }
         public UnitOfWorkBase(HshopContext context, IMapper mapper)
         {
             _context = context;
@@ -29,6 +28,7 @@ namespace Infrastructure.UnitOfWork
             Carts = new CartRepository(_context);
             Orders = new OrderRepository(_context);
             Users = new UserRepository(_context);
+            Transactions = new TransactionRepository(_context);
         }
 
         public async Task<int> CompleteAsync()

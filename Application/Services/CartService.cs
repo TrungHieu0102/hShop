@@ -39,7 +39,6 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
             {
                 var productInItem = await unitOfWork.Products.GetByIdAsync(productId);
                 cartItem.Quantity += quantity;
-                cartItem.UnitPrice += productInItem.Price * quantity;
                 await unitOfWork.Carts.UpdateCartItemAsync(cartItem);
             }
             else
@@ -50,7 +49,7 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
                     ProductId = productId,
                     ProductName = product.Name,
                     Quantity = quantity,
-                    UnitPrice = product.Price * quantity
+                    UnitPrice = product.Price
                 };
                 await unitOfWork.Carts.AddCartItemAsync(newCartItem);
             }
@@ -195,6 +194,7 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
 
             var cartDto = new CartDto()
             {
+                Id = cart.Id,
                 UserId = userId,
                 Items = cart.Items.Select(ci => new CartItemsDto()
                 {
@@ -249,9 +249,9 @@ public class CartService(IUnitOfWorkBase unitOfWork, ILogger<Cart> logger, IMapp
                     Message = "Cart item not found"
                 };
             }
-
             cartItem.Quantity = quantity;
             await unitOfWork.Carts.UpdateCartItemAsync(cartItem);
+            await cacheService.RemoveCachedDataAsync(cacheKey);
             await unitOfWork.CompleteAsync();
             await transaction.CommitAsync();
             return new Result<Cart>()

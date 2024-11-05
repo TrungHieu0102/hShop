@@ -78,7 +78,7 @@ namespace Application.Services
                 if (category.PictureUrl != null)
                 {
                     var publicId = PhotoExtensions.ExtractPublicId(category.PictureUrl);
-                    await photoService.DeletePhotoAsync("categories", $"categories/{publicId}");
+                    await photoService.DeletePhotoAsync("categories", publicId);
                 }
                 unitOfWork.Categories.Delete(category);
                 var result = await unitOfWork.CompleteAsync();
@@ -179,15 +179,14 @@ namespace Application.Services
 
             try
             {
-                var category = await unitOfWork.Categories.GetByIdAsync(id);
+                var cacheKey = $"Category_{id}";
+
+                var category = (await cacheService.GetCachedDataAsync<Category>(cacheKey) ?? await unitOfWork.Categories.GetByIdAsync(id))
+                                    ?? throw new Exception("Category not found");
                 var slug = SlugHelper.GenerateSlug(categoryDto.Name);
                 if (await unitOfWork.Categories.IsSlugExits(slug))
                 {
-                    return new Result<Category>
-                    {
-                        IsSuccess = false,
-                        Message = "Slug already exists."
-                    };
+                    throw new Exception("Slug already exists.");
                 }
                 if (category.PictureUrl != null)
                 {
@@ -203,7 +202,6 @@ namespace Application.Services
                 category.Slug = slug;
                 unitOfWork.Categories.Update(category);
 
-                var cacheKey = $"Category_{id}";
                 var cache = await cacheService.GetCachedDataAsync<Category>(cacheKey);
                 if (cache != null)
                 {

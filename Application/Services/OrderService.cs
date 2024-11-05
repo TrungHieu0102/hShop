@@ -68,7 +68,7 @@ public class OrderService(
                         UnitPrice = item.UnitPrice,
                         Product = product
                     });
-                    totalAmount += item.UnitPrice;
+                    totalAmount += (item.UnitPrice * item.Quantity);
                 }
             }
 
@@ -237,7 +237,7 @@ public class OrderService(
             var order = mapper.Map<Order>(orderInCache) ?? await unitOfWork.Orders.GetByIdAsync(orderId);
             if (order == null)
             {
-                return new Result<OrderDto>
+                return new Result<OrderDto> 
                 {
                     IsSuccess = false,
                     Message = "Order not found"
@@ -284,7 +284,7 @@ public class OrderService(
             return new Result<OrderDto>
             {
                 IsSuccess = false,
-                Message = "Order not found"
+                Message = e.Message
             };
         }
     }

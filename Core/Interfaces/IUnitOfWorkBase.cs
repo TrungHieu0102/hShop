@@ -12,6 +12,7 @@ namespace Core.Interfaces
         ICartRepository Carts { get; }
         IOrderRepository Orders { get; }
         IUserRepository Users { get; }
+        ITransactionRepository Transactions { get; }
         Task<int> CompleteAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

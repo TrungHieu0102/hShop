@@ -97,7 +97,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 //Supplier
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 // Auth
-builder.Services.AddScoped<IAuthService, AuthService>(); // Ensure AuthService has access to Identity services
+builder.Services.AddScoped<IAuthService, AuthService>();
 //User
 builder.Services.AddScoped<IUserService, UserService>();
 //Cart
@@ -105,9 +105,10 @@ builder.Services.AddScoped<ICartService, CartService>();
 //Order
 builder.Services.AddScoped<IOrderService, OrderService>();
 //Payment
-builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPaypalService, PaypalService>();
 builder.Services.AddSingleton<PaypalConfiguration>();
-
+//Transaction
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -164,7 +165,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
 //Paypal
 builder.Services.Configure<PayPalSettings>(builder.Configuration.GetSection("PayPal"));
-
+//VNPAY
+builder.Services.AddScoped<IVnPayService, VnPayService>();
+builder.Services.Configure<VnPaySettings>(builder.Configuration.GetSection("VnPay"));
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {

@@ -5,6 +5,7 @@ using Application.DTOs.OrdersDto;
 using Application.DTOs.ProductsDto;
 using Application.DTOs.RolesDto;
 using Application.DTOs.SuppliersDto;
+using Application.DTOs.TransactionDto;
 using Application.DTOs.UsersDto;
 using AutoMapper;
 using Core.Entities;
@@ -16,7 +17,7 @@ namespace Application.Mappings
         public MapperProfile()
         {
             CreateMap<User, UserDto>().ReverseMap();
-            CreateMap<User,UpdateUserRequest>().ReverseMap();
+            CreateMap<User, UpdateUserRequest>().ReverseMap();
             CreateMap<Product, ProductDto>()
                .ForMember(dest => dest.Images, opt => opt
              .MapFrom(src => src.Images.Select(img => new ProductImageDto
@@ -42,8 +43,8 @@ namespace Application.Mappings
             CreateMap<CreateUpdateCategoryDto, Category>().ReverseMap();
             CreateMap<Category, CategoryInListDto>().ReverseMap();
             CreateMap<Supplier, SupplierDto>().ReverseMap();
-            CreateMap<CreateUpdateSupplierDto, Supplier>().ReverseMap();    
-            CreateMap<Supplier, SupplierInListDto>().ReverseMap();  
+            CreateMap<CreateUpdateSupplierDto, Supplier>().ReverseMap();
+            CreateMap<Supplier, SupplierInListDto>().ReverseMap();
             CreateMap<CreateUpdateOrderDto, Order>()
                 .ForMember(dest => dest.OrderDetails, opt => opt.MapFrom(src => new List<OrderDetail>())); // Khởi tạo OrderDetails rỗng
             CreateMap<OrderDetailDto, OrderDetail>();
@@ -60,15 +61,21 @@ namespace Application.Mappings
             CreateMap<CreateUpdateUserDto, User>().ReverseMap();
             CreateMap<Cart, CartDto>()
                 .ForMember(dest => dest.Items, opt => opt
-                    .MapFrom(src => src.Items.Select(c => new CartItemsDto()
-                    {
-                       CartId = c.CartId,
-                       ProductId = c.ProductId,
-                       ProductName = c.ProductName,
-                       Quantity = c.Quantity,
-                       UnitPrice = c.UnitPrice
-                    }))).ReverseMap();
-            CreateMap<CartItem,CartItemsDto>().ReverseMap();
+                        .MapFrom(src => src.Items.Select(c => new CartItemsDto()
+                        {
+                            CartId = c.CartId,
+                            ProductId = c.ProductId,
+                            ProductName = c.ProductName,
+                            Quantity = c.Quantity,
+                            UnitPrice = c.UnitPrice
+                        }))
+                    ).ReverseMap();
+            CreateMap<CartItem, CartItemsDto>().ReverseMap();
+            CreateMap<PaymentTransaction, TransactionDto>()
+                 .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod.ToString()))
+                 .ReverseMap()
+                 .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => Enum.Parse(typeof(PaymentMethod), src.PaymentMethod)));
+            CreateMap<CreateUpdateTransactionDto, PaymentTransaction>().ReverseMap();
         }
     }
 }

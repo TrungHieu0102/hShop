@@ -42,38 +42,44 @@ namespace Application.Services
                 if (user != null)
                 {
                     var loginProvider = await userManager.GetLoginsAsync(user);
-                    if (loginProvider.Count > 0 && !user.EmailConfirmed)
+                    if (loginProvider.Count > 0 && user.PasswordHash == null)
                     {
-                        throw new Exception($"Please login by {loginProvider.First().ProviderDisplayName} or click forgotten password");
+                        throw new Exception(
+                            $"Please login by {loginProvider.First().ProviderDisplayName} or click forgotten password");
                     }
                 }
+
                 if (user == null || !await userManager.CheckPasswordAsync(user, signInDto.Password))
                 {
                     throw new Exception("Wrong email or password");
                 }
+
                 var result = await signInManager.PasswordSignInAsync(signInDto.Email, signInDto.Password, false, false);
                 var emailConfirmed = await userManager.IsEmailConfirmedAsync(user);
                 if (!result.Succeeded)
                 {
                     throw new Exception("Invalid Email or Password");
                 }
+
                 if (!emailConfirmed)
                 {
                     await emailService.SendConfirmationEmail(signInDto.Email, user);
                     throw new Exception("Please confirm your email");
                 }
+
                 return await GenerateUserToken(user);
             }
             catch (Exception e)
             {
-               logger.LogError(e.Message);
-               return new AuthResponseDto()
-               {
-                   IsSuccess = false,
-                   Message = e.Message
-               };
+                logger.LogError(e.Message);
+                return new AuthResponseDto()
+                {
+                    IsSuccess = false,
+                    Message = e.Message
+                };
             }
         }
+
         public async Task<(bool, string)> SignUpAsync(SignUpDto signUpDto)
         {
             var user = new User
@@ -94,13 +100,16 @@ namespace Application.Services
             {
                 await roleManager.CreateAsync(new Role { Name = RoleConstants.User, DisplayName = RoleConstants.User });
             }
+
             await emailService.SendConfirmationEmail(signUpDto.Email, user);
             return (true, string.Empty);
         }
+
         public async Task SignOutAsync()
         {
             await signInManager.SignOutAsync();
         }
+
         private async Task SaveRefreshToken(Guid userId, string refreshToken)
         {
             var user = await userManager.FindByIdAsync(userId.ToString());
@@ -112,6 +121,7 @@ namespace Application.Services
                 await userManager.UpdateAsync(user);
             }
         }
+
         public async Task<string> ConfirmEmail(string userId, string token)
         {
             var user = await userManager.FindByIdAsync(userId);
@@ -137,6 +147,7 @@ namespace Application.Services
                 }
             }
         }
+
         public async Task<IdentityResult> RequestPasswordChangeAsync(string mail, ClaimsPrincipal user)
         {
             User currentUser;
@@ -148,6 +159,7 @@ namespace Application.Services
                 {
                     return IdentityResult.Failed(new IdentityError { Description = "Email claim not found." });
                 }
+
                 currentUser = (await userManager.FindByEmailAsync(email))!;
             }
             else
@@ -158,6 +170,7 @@ namespace Application.Services
                     return IdentityResult.Failed(new IdentityError { Description = "User not found." });
                 }
             }
+
             var otp = PasswordExtensions.GenerateOtp();
             var cacheKey = $"otp-{currentUser.Id}";
             await cacheService.SetCachedDataAsyncWithTime(cacheKey, otp, TimeSpan.FromMinutes(5));
@@ -167,6 +180,7 @@ namespace Application.Services
 
             return IdentityResult.Success;
         }
+
         public async Task<IdentityResult> ConfirmPasswordChangeAsync(ConfirmPasswordChangeRequest request)
         {
             var user = await userManager.FindByEmailAsync(request.Email);
@@ -174,12 +188,14 @@ namespace Application.Services
             {
                 return IdentityResult.Failed(new IdentityError { Description = "User not found." });
             }
+
             var cacheKey = $"otp-{user.Id}";
             var otp = await cacheService.GetCachedDataAsync<string>(cacheKey);
             if (otp != request.OtpCode)
             {
                 return IdentityResult.Failed(new IdentityError { Description = "Invalid OTP code." });
             }
+
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
 
@@ -193,6 +209,7 @@ namespace Application.Services
 
             return result;
         }
+
         public async Task<AuthResponseDto> AuthenticateGoogleUserAsync(GoogleUserRequest request)
         {
             try
@@ -202,7 +219,8 @@ namespace Application.Services
                     Audience = new[] { configuration["Authentication:Google:ClientId"] }
                 });
 
-                var user = await GetOrCreateExternalLoginUser(GoogleUserRequest.PROVIDER, payload.Subject, payload.Email, payload.GivenName, payload.FamilyName);
+                var user = await GetOrCreateExternalLoginUser(GoogleUserRequest.PROVIDER, payload.Subject,
+                    payload.Email, payload.GivenName, payload.FamilyName);
                 return await GenerateUserToken(user);
             }
             catch (Exception ex)
@@ -211,11 +229,18 @@ namespace Application.Services
                 throw new Exception("Authentication failed. Please try again later.");
             }
         }
+
         #region Private Methods
+
         private async Task<List<string>> GetPermissionAsync(string userId)
         {
             var user = await userManager.FindByIdAsync(userId);
             var roles = await userManager.GetRolesAsync(user!);
+            if (!roles.Any())
+            {
+                roles.Add("User");
+            }
+
             var permissions = new List<string>();
             var allPermissions = new List<RoleClaimsDto>();
             if (roles.Contains(Roles.Admin))
@@ -225,6 +250,7 @@ namespace Application.Services
                 {
                     allPermissions.GetPermissions(type);
                 }
+
                 permissions.AddRange(allPermissions.Select(x => x.Value));
             }
             else
@@ -239,12 +265,13 @@ namespace Application.Services
             }
             return permissions.Distinct().ToList();
         }
-        private async Task<User> GetOrCreateExternalLoginUser(string provider, string key, string email, string firstName, string lastName)
+
+        private async Task<User> GetOrCreateExternalLoginUser(string provider, string key, string email,
+            string firstName, string lastName)
         {
             try
             {
                 var user = await userManager.FindByLoginAsync(provider, key);
-
                 if (user != null)
                     return user;
 
@@ -266,7 +293,8 @@ namespace Application.Services
                     var createResult = await userManager.CreateAsync(user);
                     if (!createResult.Succeeded)
                     {
-                        throw new Exception("User  creation failed: " + string.Join(", ", createResult.Errors.Select(x => x.Description)));
+                        throw new Exception("User  creation failed: " +
+                                            string.Join(", ", createResult.Errors.Select(x => x.Description)));
                     }
 
                     var info = new UserLoginInfo(provider, key, provider.ToUpperInvariant());
@@ -274,7 +302,8 @@ namespace Application.Services
 
                     if (!result.Succeeded)
                     {
-                        throw new Exception("Adding login failed: " + string.Join(", ", result.Errors.Select(x => x.Description)));
+                        throw new Exception("Adding login failed: " +
+                                            string.Join(", ", result.Errors.Select(x => x.Description)));
                     }
                 }
 
@@ -282,31 +311,36 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in GetOrCreateExternalLoginUser  for provider: {Provider}, key: {Key}", provider, key);
+                logger.LogError(ex, "Error in GetOrCreateExternalLoginUser  for provider: {Provider}, key: {Key}",
+                    provider, key);
                 throw;
             }
         }
+
         private async Task<AuthResponseDto> GenerateUserToken(User user)
         {
             try
             {
                 var roles = await userManager.GetRolesAsync(user);
-                var permission = await GetPermissionAsync(user.Id.ToString());
+                if (!roles.Any())
+                {
+                    await userManager.AddToRoleAsync(user, "User");
+                }
 
+                var permission = await GetPermissionAsync(user.Id.ToString());
                 var authClaims = new List<Claim>
                 {
-                new(JwtRegisteredClaimNames.Email, user.Email!),
-                new Claim(UserClaims.Id, user.Id.ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Email!),
-                new Claim(ClaimTypes.Name, user.UserName!),
-                new Claim(UserClaims.FirstName, user.FirstName),
-                new Claim(UserClaims.Roles, string.Join(";", roles)),
-                new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                    new(JwtRegisteredClaimNames.Email, user.Email!),
+                    new Claim(UserClaims.Id, user.Id.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, user.Email!),
+                    new Claim(ClaimTypes.Name, user.UserName!),
+                    new Claim(UserClaims.FirstName, user.FirstName),
+                    new Claim(UserClaims.Roles, string.Join(";", roles)),
+                    new Claim(UserClaims.Permissions, JsonSerializer.Serialize(permission)),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
-                var userRole = await userManager.GetRolesAsync(user);
-                authClaims.AddRange(userRole.Select(role => new Claim(ClaimTypes.Role, role)));
+                authClaims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
                 var jwtKey = configuration["JWT:Key"];
                 if (string.IsNullOrEmpty(jwtKey))
@@ -320,7 +354,8 @@ namespace Application.Services
                     audience: configuration["JWT:Audience"],
                     claims: authClaims,
                     expires: DateTime.Now.AddDays(1),
-                    signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey), SecurityAlgorithms.HmacSha256)
+                    signingCredentials: new SigningCredentials(new SymmetricSecurityKey(authKey),
+                        SecurityAlgorithms.HmacSha256)
                 );
 
                 var refreshToken = RefreshToken.GenerateRefreshToken();
@@ -341,8 +376,7 @@ namespace Application.Services
                 throw new Exception("Token generation failed. Please try again later.");
             }
         }
+
         #endregion
-    
     }
 }
-

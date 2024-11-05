@@ -1,12 +1,8 @@
-﻿using Bogus;
-using Core.Entities;
-using Core.Helpers;
+﻿using Core.Entities;
 using Core.SeedWorks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using System.Reflection.Emit;
 
 
 namespace Infrastructure.Data.Context
@@ -21,7 +17,7 @@ namespace Infrastructure.Data.Context
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
-
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -84,6 +80,19 @@ namespace Infrastructure.Data.Context
                 .WithMany(p => p.OrderDetails)
                 .HasForeignKey(od => od.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<PaymentTransaction>()
+                .Property(p => p.Amount)
+                .HasColumnType("decimal(18,2)");
+            builder.Entity<Order>()
+                .HasOne(o => o.PaymentTransaction)
+                .WithOne(pt => pt.Order)
+                .HasForeignKey<PaymentTransaction>(pt => pt.OrderId)
+                .OnDelete(DeleteBehavior.Restrict); 
+            builder.Entity<User>()
+                .HasMany(u => u.PaymentTransactions)
+                .WithOne(pt => pt.User)
+                .HasForeignKey(pt => pt.UserId)
+                .OnDelete(DeleteBehavior.Restrict); 
         }
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {

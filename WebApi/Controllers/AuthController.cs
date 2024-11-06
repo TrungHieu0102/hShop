@@ -28,8 +28,8 @@ namespace WebApi.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
         private readonly IConfiguration _configuration = configuration;
 
-        [HttpPost("Sign-up")]
-        public async Task<IActionResult> SignUp([FromBody] SignUpDto signUpDto)
+        [HttpPost("sign-up")]
+        public async Task<IActionResult> SignUp([FromForm] SignUpDto signUpDto)
         {
             if (!ModelState.IsValid)
             {
@@ -44,7 +44,7 @@ namespace WebApi.Controllers
             return BadRequest(new { Message = "Registration failed", Error = error });
         }
 
-        [HttpPost("Sign-in")]
+        [HttpPost("sign-in")]
         public async Task<IActionResult> SignIn([FromBody] SignInDto signInDto)
         {
             if (!ModelState.IsValid)
@@ -78,7 +78,7 @@ namespace WebApi.Controllers
             }
 
         }
-        [HttpPost("Sign-out")]
+        [HttpPost("sign-out")]
         [Authorize]
         public async Task<IActionResult> SignOutUser()
         {
@@ -86,15 +86,15 @@ namespace WebApi.Controllers
             return Ok(new { Message = "Logged out successfully" });
         }
         [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        public async Task<IActionResult> ConfirmEmail([FromQuery]string userId, [FromQuery]string token)
         {
             var result = await authService.ConfirmEmail(userId, token);
             return Content(result);
         }
         [HttpPost("request-password-change")]
-        public async Task<IActionResult> RequestPasswordChange(string mail)
+        public async Task<IActionResult> RequestPasswordChange([FromBody] RequestPasswordChange request)
         {
-            var result = await authService.RequestPasswordChangeAsync(mail, User);
+            var result = await authService.RequestPasswordChangeAsync(request.Email, User);
 
             if (!result.Succeeded)
             {
@@ -116,7 +116,7 @@ namespace WebApi.Controllers
             return Ok("Password changed successfully.");
         }
         [AllowAnonymous]
-        [HttpPost("google")]
+        [HttpPost("login-google")]
         public async Task<IActionResult> GoogleAuthenticate([FromBody] GoogleUserRequest request)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.Values.SelectMany(it => it.Errors).Select(it => it.ErrorMessage));

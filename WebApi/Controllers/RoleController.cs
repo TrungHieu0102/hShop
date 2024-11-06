@@ -12,13 +12,13 @@ using Application.DTOs.RoleDto;
 using Application.DTOs.AuthsDto;
 using Application.DTOs.RolesDto;
 using Application.DTOs.RoleDto.RolesDto;
+
 #nullable disable
 namespace WebApi.Controllers
 {
     [Route("[controller]")]
     [ApiController]
     [ValidateModel]
-
     public class RoleController(RoleManager<Role> roleManager, IMapper mapper) : ControllerBase
     {
         [HttpPost]
@@ -33,6 +33,7 @@ namespace WebApi.Controllers
             });
             return Ok(result);
         }
+
         [HttpDelete]
         public async Task<IActionResult> DeleteRoles([FromQuery] Guid[] ids)
         {
@@ -43,24 +44,29 @@ namespace WebApi.Controllers
                 {
                     return NotFound();
                 }
+
                 await roleManager.DeleteAsync(role);
             }
+
             return Ok();
         }
-        [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetRoleById([FromRoute] Guid id)
+
+        [HttpGet("{roleId:guid}")]
+        public async Task<IActionResult> GetRoleById([FromRoute] Guid roleId)
         {
-            var role = await roleManager.FindByIdAsync(id.ToString());
+            var role = await roleManager.FindByIdAsync(roleId.ToString());
             if (role == null)
             {
                 return NotFound();
             }
+
             return Ok(mapper.Map<RoleDto>(role));
         }
-        [HttpGet]
-        [Route("GetAllRolesPaging")]
 
-        public async Task<ActionResult<PagedResult<RoleDto>>> GetRolesAllPaging(string keyword, int pageIndex = 1, int pageSize = 10, bool IsDecsending = false)
+        [HttpGet]
+        [Route("all/paging")]
+        public async Task<ActionResult<PagedResult<RoleDto>>> GetRolesAllPaging(string keyword, int pageIndex = 1,
+            int pageSize = 10, bool IsDecsending = false)
         {
             var query = roleManager.Roles;
             if (!string.IsNullOrEmpty(keyword))
@@ -82,13 +88,15 @@ namespace WebApi.Controllers
 
             return Ok(paginationSet);
         }
+
         [HttpGet]
-        [Route("GetAllRoles")]
+        [Route("all")]
         public async Task<ActionResult<List<RoleDto>>> GetAllRoles()
         {
             var model = await mapper.ProjectTo<RoleDto>(roleManager.Roles).ToListAsync();
             return Ok(model);
         }
+
         [HttpPut("permissions")]
         public async Task<IActionResult> SavePermission([FromBody] PermissionDto model)
         {
@@ -101,15 +109,18 @@ namespace WebApi.Controllers
             {
                 await roleManager.RemoveClaimAsync(role, claim);
             }
+
             var selectedClaims = model.RoleClaims.Where(a => a.Selected).ToList();
             foreach (var claim in selectedClaims)
             {
                 await roleManager.AddPermissionClaim(role, claim.Value);
             }
+
             return Ok();
         }
-        [HttpGet("{roleId}/permissions")]
-        public async Task<ActionResult<PermissionDto>> GetAllRolePermissions(string roleId)
+
+        [HttpGet("{roleId:guid}/permissions")]
+        public async Task<ActionResult<PermissionDto>> GetAllRolePermissions([FromRoute]Guid roleId)
         {
             var model = new PermissionDto();
             var allPermissions = new List<RoleClaimsDto>();
@@ -119,10 +130,10 @@ namespace WebApi.Controllers
                 allPermissions.GetPermissions(type);
             }
 
-            var role = await roleManager.FindByIdAsync(roleId);
+            var role = await roleManager.FindByIdAsync(roleId.ToString());
             if (role == null)
                 return NotFound();
-            model.RoleId = roleId;
+            model.RoleId = roleId.ToString();
             var claims = await roleManager.GetClaimsAsync(role);
             var allClaimValues = allPermissions.Select(a => a.Value).ToList();
             var roleClaimValues = claims.Select(a => a.Value).ToList();
@@ -134,9 +145,9 @@ namespace WebApi.Controllers
                     permission.Selected = true;
                 }
             }
+
             model.RoleClaims = allPermissions;
             return Ok(model);
         }
-
     }
 }

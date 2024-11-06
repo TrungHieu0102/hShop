@@ -96,7 +96,7 @@ namespace Application.Services.Payment
                 redirect_urls = new RedirectUrls()
                 {
                     cancel_url = "http://localhost:5000/api/payment/cancel",
-                    return_url = $"http://localhost:5000/api/payment/paypal-execute-payment?orderId={orderId}"
+                    return_url = $"http://localhost:5000/api/payment/paypal/execute-payment?orderId={orderId}"
                 }
             };
             try

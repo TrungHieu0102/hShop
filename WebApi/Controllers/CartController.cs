@@ -9,13 +9,13 @@ namespace WebApi.Controllers;
 [Route("api/[controller]")]
 public class CartController(ICartService cartService) : ControllerBase
 {
-    [HttpPost("add")]
+    [HttpPost("Add")]
     [Authorize]
-    public async Task<IActionResult> AddToCart(Guid productId, int quantity)
+    public async Task<IActionResult> AddToCart([FromQuery] Guid productId, [FromQuery] int quantity)
     {
-        var value = User.FindFirst("id")?.Value;
-        if (value == null) return BadRequest("User not found");
-        var userId = Guid.Parse(value); // Lấy UserId từ Claims
+        var userIdClaim = User.FindFirst("id")?.Value;
+        if (userIdClaim == null) return BadRequest("User not found");
+        var userId = Guid.Parse(userIdClaim);
         var result = await cartService.AddToCartAsync(userId, productId, quantity);
 
         if (!result.IsSuccess)
@@ -24,9 +24,9 @@ public class CartController(ICartService cartService) : ControllerBase
         return Ok(result);
     }
 
-    [HttpDelete("remove")]
+    [HttpDelete("Remove")]
     [Authorize]
-    public async Task<IActionResult> RemoveFromCart(Guid productId)
+    public async Task<IActionResult> RemoveFromCart([FromQuery] Guid productId)
     {
         var value = User.FindFirst("id")?.Value;
         if (value == null) return BadRequest();
@@ -39,7 +39,7 @@ public class CartController(ICartService cartService) : ControllerBase
         return Ok(result);
     }
 
-    [HttpDelete("clear")]
+    [HttpDelete("Clear")]
     [Authorize]
     public async Task<IActionResult> ClearCart()
     {
@@ -54,7 +54,7 @@ public class CartController(ICartService cartService) : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet]
+    [HttpGet("Get")]
     [Authorize]
     public async Task<IActionResult> GetCartDetails()
     {
@@ -66,12 +66,13 @@ public class CartController(ICartService cartService) : ControllerBase
         {
             return BadRequest(result.Message);
         }
+
         return Ok(result.Data);
     }
 
-    [HttpPut("update-cart-quantity ")]
+    [HttpPut("Update/{productId}")]
     [Authorize]
-    public async Task<IActionResult> UpdateCartQuantity(Guid productId, int quantity)
+    public async Task<IActionResult> UpdateCartQuantity([FromRoute] Guid productId, [FromQuery] int quantity)
     {
         var value = User.FindFirst("id")?.Value;
         if (value == null) return BadRequest("Please login");
@@ -81,6 +82,7 @@ public class CartController(ICartService cartService) : ControllerBase
         {
             return BadRequest(result.Message);
         }
+
         return NoContent();
     }
 }

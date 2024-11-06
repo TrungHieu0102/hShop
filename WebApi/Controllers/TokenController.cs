@@ -36,13 +36,11 @@ namespace WebApi.Controllers
                 return BadRequest("Invalid client request");
             }
             var newAccessToken = tokenService.GenerateAccessToken(principal.Claims);
-            // var newRefreshToken = tokenService.GenerateRefreshToken();
-            // user.RefreshToken = newRefreshToken;
+
             await userManager.UpdateAsync(user);
             return new AuthenticatedResult
             {
                 AccessToken = newAccessToken,
-                // RefreshToken = newRefreshToken
             };
 
         }

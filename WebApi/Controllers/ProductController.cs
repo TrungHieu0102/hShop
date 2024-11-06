@@ -60,7 +60,7 @@ namespace WebApi.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> UpdateProduct(Guid id, [FromForm] CreateUpdateProductDto productDto)
+        public async Task<IActionResult> UpdateProduct([FromRoute ]Guid id, [FromForm] CreateUpdateProductDto productDto)
         {
             var result = await productService.UpdateProductWithImagesAsync(id, productDto);
             if (!result.IsSuccess)
@@ -72,7 +72,7 @@ namespace WebApi.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult> DeleteProduct(Guid id)
+        public async Task<ActionResult> DeleteProduct([FromRoute]Guid id)
         {
             var product = await productService.GetProductByIdAsync(id);
             if (product == null)
@@ -90,7 +90,7 @@ namespace WebApi.Controllers
 
         [HttpGet("category/{categoryId:guid}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetProductByCategory(Guid categoryId, [FromQuery] int page = 1,
+        public async Task<IActionResult> GetProductByCategory([FromRoute]Guid categoryId, [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10, [FromQuery] bool IsDecsending = false)
         {
             var pagedResult = await productService.GetProductByCategoryAsync(categoryId, page, pageSize, IsDecsending);
@@ -111,9 +111,9 @@ namespace WebApi.Controllers
             return Ok(pagedResult);
         }
 
-        [HttpGet("get-most-outstanding")]
+        [HttpGet("most-outstanding")]
         public async Task<IActionResult> GetMostOutstandingProducts([FromQuery] int topCount,
-            ProductSortCriteria sortCriteria, [FromQuery] bool isDescending = false)
+            [FromQuery]ProductSortCriteria sortCriteria, [FromQuery] bool isDescending = false)
         {
             var result = await productService.GetTopProductsAsync(topCount, sortCriteria, isDescending);
             if (!result.IsSuccess)
@@ -124,11 +124,11 @@ namespace WebApi.Controllers
             return Ok(result);
         }
 
-        [HttpGet("get-product-by-supplier{id:guid}")]
-        public async Task<IActionResult> GetProductBySupplierId(Guid id, [FromQuery]int page = 1, [FromQuery]int pageSize=10,
+        [HttpGet("supplier/{supplierId:guid}")]
+        public async Task<IActionResult> GetProductBySupplierId([FromRoute] Guid supplierId, [FromQuery]int page = 1, [FromQuery]int pageSize=10,
            [FromQuery] bool isDescending = false)
         {
-            var result = await productService.GetProductBySupplier(id, page, pageSize, isDescending);
+            var result = await productService.GetProductBySupplier(supplierId, page, pageSize, isDescending);
             if (result.IsSuccess == false)
             {
                 return BadRequest(result.AdditionalData);

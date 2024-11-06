@@ -5,23 +5,26 @@ using Microsoft.AspNetCore.Mvc;
 using WebApi.Filters;
 
 namespace WebApi.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
 [ValidateModel]
 public class CategoryController(ICategoryService categoryService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
+    public async Task<IActionResult> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10,
+        [FromQuery] string search = "", [FromQuery] bool IsDecsending = false)
     {
         var pagedResult = await categoryService.GetAllAsync(page, pageSize, search, IsDecsending);
-        if(pagedResult.IsSuccess == false)
+        if (pagedResult.IsSuccess == false)
         {
-            return BadRequest();
+            return BadRequest(pagedResult.AdditionalData);
         }
+
         return Ok(pagedResult);
     }
-    [HttpGet]
-    [Route("{id:guid}")]
+
+    [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetCategoryById(Guid id)
     {
         var result = await categoryService.GetByIdAsync(id);
@@ -29,8 +32,10 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
         {
             return NotFound(result.Message);
         }
+
         return Ok(result.Data);
     }
+
     [HttpPost]
     public async Task<IActionResult> AddCategory([FromForm] CreateUpdateCategoryDto categoryDto)
     {
@@ -39,10 +44,11 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
         {
             return BadRequest(result.Message);
         }
-        return Created();
+
+        return CreatedAtAction(nameof(GetCategoryById), new { id = result.Data.Id }, result.Data);
     }
-    [HttpPut]
-    [Route("{id:guid}")]
+
+    [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromForm] CreateUpdateCategoryDto categoryDto)
     {
         var result = await categoryService.UpdateCategoryAsync(id, categoryDto);
@@ -50,10 +56,11 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
         {
             return NotFound(result.Message);
         }
+
         return NoContent();
     }
-    [HttpDelete]
-    [Route("{id:guid}")]
+
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
         var result = await categoryService.DeleteCategoryAsync(id);
@@ -61,6 +68,7 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
         {
             return NotFound("Category not found");
         }
+
         return NoContent();
     }
 }

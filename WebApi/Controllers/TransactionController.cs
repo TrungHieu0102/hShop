@@ -2,13 +2,6 @@
 using Application.Interfaces;
 using Core.Entities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MimeKit.Encodings;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WebApi.Filters;
 
 namespace WebApi.Controllers
@@ -19,67 +12,68 @@ namespace WebApi.Controllers
 
     public class TransactionController(ITransactionService transactionService) : ControllerBase
     {
-        private readonly ITransactionService _transactionService = transactionService;
-        [HttpGet("GetAllTransaction")]
-        public async Task<IActionResult> GetAllTransaction([FromQuery] string? searchByPaymentMethod, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool sortByDate = false)
+        [HttpGet]
+        public async Task<IActionResult> GetAllTransaction([FromQuery] string? searchByPaymentMethod, 
+                                                            [FromQuery] int page = 1, [FromQuery] int pageSize = 10, 
+                                                            [FromQuery] bool sortByDate = false)
         {
-            var pagedResult = await _transactionService.GetAllTransaction(searchByPaymentMethod, page, pageSize, sortByDate);
+            var pagedResult = await transactionService.GetAllTransaction(searchByPaymentMethod, page, pageSize, sortByDate);
             if (pagedResult.IsSuccess == false)
             {
                 return BadRequest(pagedResult.AdditionalData);
             }
             return Ok(pagedResult);
         }
-        [HttpGet("GetTransactionById/{id}")]
-        public async Task<IActionResult> GetTransactionById([FromRoute] Guid id)
+        [HttpGet("{transactionId:guid}")]
+        public async Task<IActionResult> GetTransactionById([FromRoute] Guid transactionId)
         {
-            var result = await _transactionService.GetTransactionById(id);
+            var result = await transactionService.GetTransactionById(transactionId);
             if (!result.IsSuccess || result.Data == null)
             {
                 return NotFound(result.Message);
             }
             return Ok(result.Data);
         }
-        [HttpPut("UpdateTransaction/{id}")]
-        public async Task<IActionResult> UpdateTransaction([FromRoute] Guid id, [FromBody] CreateUpdateTransactionDto request)
+        [HttpPut("{transactionId:guid}")]
+        public async Task<IActionResult> UpdateTransaction([FromRoute] Guid transactionId, [FromBody] CreateUpdateTransactionDto request)
         {
-            var result = await _transactionService.UpdateTransaction(id, request);
+            var result = await transactionService.UpdateTransaction(transactionId, request);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
             }
             return Ok(result.Data);
         }
-        [HttpDelete("DeleteTransaction/{id}")]
-        public async Task<IActionResult> DeleteTransaction([FromRoute] Guid id)
+        [HttpDelete("{transactionId:guid}")]
+        public async Task<IActionResult> DeleteTransaction([FromRoute] Guid transactionId)
         {
-            var result = await _transactionService.DeleteTransaction(id);
+            var result = await transactionService.DeleteTransaction(transactionId);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
             }
             return Ok(result.Data);
         }
-        [HttpGet("GetTransactionByUserId/{userId}")]
+        [HttpGet("user/{userId:guid}")]
         public async Task<IActionResult> GetTransactionByUserId([FromRoute] Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool sortByDate = false)
         {
-            var result = await _transactionService.GetTransactionByUserId(userId,page, pageSize, sortByDate);
+            var result = await transactionService.GetTransactionByUserId(userId,page, pageSize, sortByDate);
             if (!result.IsSuccess || result.Results.Count() == 0 )
             {
                 return NotFound(result.AdditionalData);
             }
             return Ok(result.Results);
         }
-        [HttpGet("GetTotalAmountByUserId/{userId}")]
+        [HttpGet("total-amount/{userId:guid}")]
         public async Task<IActionResult> GetTotalAmountByUserId([FromRoute] Guid userId)
         {
-            var result = await _transactionService.GetTotalAmountByUserId(userId);
+            var result = await transactionService.GetTotalAmountByUserId(userId);
             return Ok(result);
         }
-        [HttpGet("paymenttransactions/range")]
+        [HttpGet("payment/date/range")]
         public async Task<IActionResult> GetTransactionsByDateRange([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool sortByDate = false)
         {
-            var result = await _transactionService.GetTransactionsByDateRange(startDate, endDate, page, pageSize, sortByDate);
+            var result = await transactionService.GetTransactionsByDateRange(startDate, endDate, page, pageSize, sortByDate);
             if (!result.IsSuccess || result.Results.Count() == 0)
             {
                 return NotFound(result.AdditionalData);
@@ -87,10 +81,10 @@ namespace WebApi.Controllers
             return Ok(result.Results);
         }
         [HttpGet]
-        [Route("paymenttransactions/statistics")]
+        [Route("payment/statistics")]
         public async Task<ActionResult<Dictionary<PaymentMethod, int>>> GetTransactionStatistics()
         {
-            var statistics = await _transactionService.GetTransactionStatistics();
+            var statistics = await transactionService.GetTransactionStatistics();
 
             return Ok(statistics);
         }

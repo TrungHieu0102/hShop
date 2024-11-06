@@ -13,10 +13,10 @@ namespace WebApi.Controllers
     [ValidateModel]
     public class UserController(IUserService userService, IConfiguration configuration) : ControllerBase
     {
-        [HttpGet()]
-        public async Task<IActionResult> GetUserInformation(Guid id)
+        [HttpGet("{userId:guid}")]
+        public async Task<IActionResult> GetUserInformation([FromRoute] Guid userId)
         {
-            var result = await userService.GetInformationById(id);
+            var result = await userService.GetInformationById(userId);
             if (!result.IsSuccess)
             {
                 return NotFound(result.Message);
@@ -25,11 +25,11 @@ namespace WebApi.Controllers
             return Ok(result.Data);
         }
 
-        [HttpDelete()]
+        [HttpDelete("{userId:guid}")]
         [Authorize(Roles = RoleConstants.Admin)]
-        public async Task<IActionResult> DeleteUser(Guid id)
+        public async Task<IActionResult> DeleteUser([FromRoute] Guid userId)
         {
-            var result = await userService.DeleteUserById(id);
+            var result = await userService.DeleteUserById(userId);
             if (!result)
             {
                 return NotFound("User not found");
@@ -38,13 +38,13 @@ namespace WebApi.Controllers
             return Ok("User deleted successfully");
         }
 
-        [HttpPut]
+        [HttpPut("{userId:guid}")]
         [Authorize]
-        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] CreateUpdateUserDto requestUser)
+        public async Task<IActionResult> UpdateUser([FromRoute] Guid userId, [FromBody] CreateUpdateUserDto requestUser)
         {
             try
             {
-                var result = await userService.UpdateUserAsync(id, requestUser);
+                var result = await userService.UpdateUserAsync(userId, requestUser);
                 if (!result.IsSuccess)
                 {
                     return BadRequest(result.Message);
@@ -57,12 +57,12 @@ namespace WebApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
-        [HttpPut("api/User/assign-roles")]
+        
+        [HttpPut("assign-roles/{userId:guid}")]
         [Authorize(Roles = RoleConstants.Admin)]
-        public async Task<IActionResult> AssignRolesToUser(Guid id, [FromBody] string[] roles)
+        public async Task<IActionResult> AssignRolesToUser([FromRoute]Guid userId, [FromBody] string[] roles)
         {
-            var result = await userService.UpdateUserRoleAsync(id, roles);
+            var result = await userService.UpdateUserRoleAsync(userId, roles);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -71,11 +71,11 @@ namespace WebApi.Controllers
             return Ok(result.Message);
         }
 
-        [HttpPut("api/User/unassign-roles")]
+        [HttpPut("unassign-roles/{userId:guid}")]
         [Authorize(Roles = RoleConstants.Admin)]
-        public async Task<IActionResult> UnassignRolesToUser(Guid id, [FromBody] string[] roles)
+        public async Task<IActionResult> UnassignRolesToUser([FromRoute]Guid userId, [FromBody] string[] roles)
         {
-            var result = await userService.DeleteUserRolesAsync(id, roles);
+            var result = await userService.DeleteUserRolesAsync(userId, roles);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -84,7 +84,7 @@ namespace WebApi.Controllers
             return Ok();
         }
 
-        [HttpGet("get-all-users")]
+        [HttpGet]
         public async Task<IActionResult> GetAllUsers(string? keyword, int pageIndex = 1, int pageSize = 10)
         {
             var result = await userService.GetAllUsersPaging(keyword, pageIndex, pageSize);
@@ -96,10 +96,10 @@ namespace WebApi.Controllers
             return Ok(result);
         }
 
-        [HttpPost("set-password")]
-        public async Task<IActionResult> SetPassword(Guid id, [FromBody] SetPasswordRequest passwordRequest)
+        [HttpPost("set-password/{userId:guid}")]
+        public async Task<IActionResult> SetPassword([FromRoute]Guid userId, [FromBody] SetPasswordRequest passwordRequest)
         {
-            var result = await userService.SetPassword(id, passwordRequest);
+            var result = await userService.SetPassword(userId, passwordRequest);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -108,17 +108,6 @@ namespace WebApi.Controllers
             return Ok(result.Message);
         }
 
-        [HttpPut("{id}")]
-        [ValidateModel]
-        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest requestUser)
-        {
-            var result = await userService.UpdateUser(id, requestUser);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(result.Message);
-            }
-
-            return Ok(result.Data);
-        }
+       
     }
 }

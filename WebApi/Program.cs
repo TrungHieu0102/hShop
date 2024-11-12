@@ -109,6 +109,10 @@ builder.Services.AddScoped<IPaypalService, PaypalService>();
 builder.Services.AddSingleton<PaypalConfiguration>();
 //Transaction
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+//Review
+builder.Services.AddScoped<IReviewService, ReviewService>();
+//Wishlist
+builder.Services.AddScoped<IWishlistService, WishlistService>();
 // Register Authorization Handler
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddScoped<ITokenService, TokenService>();

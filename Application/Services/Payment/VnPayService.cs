@@ -15,7 +15,8 @@ namespace Application.Services.Payment
 {
     public class VnPayService(IOptions<VnPaySettings> vnPaySettings, 
         IUnitOfWorkBase unitOfWork, 
-        ITransactionService transaction, 
+        ITransactionService transaction,
+        IProductService productService,
         ICacheService cacheService,
         IOrderService orderService)
         : IVnPayService
@@ -118,6 +119,14 @@ namespace Application.Services.Payment
                 order.PaymentMethod = PaymentMethod.VnPay;
                 unitOfWork.Orders.Entry(order).Property(o => o.PaymentStatus).IsModified = true;
                 unitOfWork.Orders.Entry(order).Property(o => o.PaymentMethod).IsModified = true;
+                foreach (var detail in order.OrderDetails)
+                {
+                    var product = await productService.UpdateProductQuantity(detail.ProductId, detail.Quantity);
+                    if (!product.IsSuccess)
+                    {
+                        throw new Exception($"Update product quantity error : {product.Message}");
+                    }
+                }
                 await unitOfWork.CompleteAsync();
                 await cacheService.RemoveCachedDataAsync(cacheKey);
 

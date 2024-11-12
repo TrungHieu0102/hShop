@@ -22,6 +22,8 @@ namespace Core.Entities
         public DateTime? RefreshTokenExpiryTime { get; set; }
         public Cart Cart { get; set; }
         public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; }
+        public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
         public string GetFullName()
         {
             return this.FirstName + " " + this.LastName;

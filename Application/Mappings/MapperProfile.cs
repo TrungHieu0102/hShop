@@ -3,10 +3,12 @@ using Application.DTOs.CardDto;
 using Application.DTOs.CategoriesDto;
 using Application.DTOs.OrdersDto;
 using Application.DTOs.ProductsDto;
+using Application.DTOs.ReviewDto;
 using Application.DTOs.RolesDto;
 using Application.DTOs.SuppliersDto;
 using Application.DTOs.TransactionDto;
 using Application.DTOs.UsersDto;
+using Application.DTOs.WishlistDto;
 using AutoMapper;
 using Core.Entities;
 
@@ -76,6 +78,27 @@ namespace Application.Mappings
                  .ReverseMap()
                  .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => Enum.Parse(typeof(PaymentMethod), src.PaymentMethod)));
             CreateMap<CreateUpdateTransactionDto, PaymentTransaction>().ReverseMap();
+            CreateMap<Review, ReviewDto>()
+              .ForMember(dest => dest.ReviewImages, opt => opt
+            .MapFrom(src => src.ReviewImages.Select(img => new ReviewImageDto
+            {
+                ImageUrl = img.ImageUrl,
+            })))
+            .ReverseMap();
+            CreateMap<CreateUpdateReviewDto, Review>()
+               .ForMember(dest => dest.ReviewImages, opt => opt.Ignore())
+               .ReverseMap()
+               .ForMember(dest => dest.ReviewImages, opt => opt.Ignore());
+            CreateMap<Review, ReviewInListDto>()
+             .ForMember(dest => dest.ReviewImages, opt => opt
+             .MapFrom(src => src.ReviewImages.Select(img => new ReviewImageDto
+             {
+                 ImageUrl = img.ImageUrl,
+             })))
+             .ReverseMap();
+            CreateMap<ReviewImage, ReviewImageDto>();
+            CreateMap<Wishlist, WishlistDto>().ReverseMap();
+            CreateMap<CreateUpdateWishlistDto, Wishlist>().ReverseMap();
         }
     }
 }

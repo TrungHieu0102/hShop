@@ -15,5 +15,6 @@ namespace Application.Interfaces
         Task<ImageUploadResult> AddPhotoAsync(IFormFile file, string folder);
         Task<DeletionResult> DeletePhotoAsync(string folder, string publicId);
         Task<Result<ProductImage>> UpdateProductImagesAsync(Guid productId, List<IFormFile> newImages);
+        Task<Result<ReviewImage>> UpdateReviewImage(Guid reviewId, ICollection<IFormFile> reviewImages);
     }
 }

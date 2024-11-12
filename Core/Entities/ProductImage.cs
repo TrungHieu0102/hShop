@@ -17,7 +17,7 @@ namespace Core.Entities
         public bool IsPrimary { get; set; }
         [Required(ErrorMessage = "Image type is required.")]
         [MaxLength(50, ErrorMessage = "Image type cannot exceed 50 characters.")]
-        public string ImageType { get; set; } // e.g., primary, secondary, thumbnail
+        public string ImageType { get; set; }
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }

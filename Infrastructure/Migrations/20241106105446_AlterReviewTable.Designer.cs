@@ -4,6 +4,7 @@ using Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(HshopContext))]
-    partial class HshopContextModelSnapshot : ModelSnapshot
+    [Migration("20241106105446_AlterReviewTable")]
+    partial class AlterReviewTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -443,21 +446,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Core.Entities.Wishlist", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("UserId", "ProductId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("Wishlists");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -592,9 +580,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<decimal?>("Rating")
                         .HasColumnType("decimal(3, 2)");
-
-                    b.Property<int?>("RatingCount")
-                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -748,25 +733,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Review");
                 });
 
-            modelBuilder.Entity("Core.Entities.Wishlist", b =>
-                {
-                    b.HasOne("Product", "Product")
-                        .WithMany("Wishlists")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Core.Entities.User", "User")
-                        .WithMany("Wishlists")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Core.Entities.Role", null)
@@ -863,8 +829,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("PaymentTransactions");
 
                     b.Navigation("Reviews");
-
-                    b.Navigation("Wishlists");
                 });
 
             modelBuilder.Entity("Product", b =>
@@ -876,8 +840,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("OrderDetails");
 
                     b.Navigation("Reviews");
-
-                    b.Navigation("Wishlists");
                 });
 #pragma warning restore 612, 618
         }

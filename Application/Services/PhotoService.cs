@@ -5,6 +5,7 @@ using Core.Entities;
 using Core.Interfaces;
 using Core.Model;
 using Microsoft.AspNetCore.Http;
+using static Core.SeedWorks.Constants.Permissions;
 
 namespace Application.Services
 {
@@ -71,6 +72,40 @@ namespace Application.Services
             }
             await unitOfWork.CompleteAsync();
             return new Result<ProductImage> { IsSuccess = true };
+        }
+        public async Task<Result<ReviewImage>> UpdateReviewImage(Guid reviewId, ICollection<IFormFile> reviewImages)
+        {
+            var existingImages = await unitOfWork.ReviewImages.GetImagesByReviewIdAsync(reviewId);
+            if (existingImages.Count > 0)
+            {
+                foreach (var image in existingImages)
+                {
+                    await DeletePhotoAsync("product", image.ImageUrl);
+                }
+
+                await unitOfWork.ReviewImages.DeleteImagesByReviewIdAsync(reviewId);
+            }
+
+            if (reviewImages != null && reviewImages.Any())
+            {
+                foreach (var image in reviewImages)
+                {
+                    var uploadResult = await AddPhotoAsync(image, "review");
+                    if (uploadResult.Error == null)
+                    {
+                        var reviewImg = new ReviewImage
+                        {
+                            Id = Guid.NewGuid(),
+                            ReviewId = reviewId,
+                            ImageUrl = uploadResult.SecureUrl.ToString(),
+                           
+                        };
+                        unitOfWork.ReviewImages.Add(reviewImg);
+                    }
+                }
+            }
+            await unitOfWork.CompleteAsync();
+            return new Result<ReviewImage> { IsSuccess = true };
         }
     }
 }

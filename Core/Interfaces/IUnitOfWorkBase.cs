@@ -13,6 +13,9 @@ namespace Core.Interfaces
         IOrderRepository Orders { get; }
         IUserRepository Users { get; }
         ITransactionRepository Transactions { get; }
+        IReviewRepository Reviews { get; }
+        IReviewImageRepository ReviewImages { get; }
+        IWishlistRepository Wishlists { get; }
         Task<int> CompleteAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
     }

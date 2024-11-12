@@ -436,5 +436,65 @@ namespace Application.Services
                 };
             }
         }
+        public async Task<ResultBase> UpdateProductRating(Guid productId, int reviewRate, int reviewCount)
+        {
+            try
+            {
+                var cacheKey = $"Product_{productId}";
+                var productInCache = await cacheServices.GetCachedDataAsync<ProductDto>(cacheKey);
+                var product = (mapper.Map<Product>(productInCache)
+                    ?? await unitOfWork.Products.GetByIdAsync(productId))
+                    ?? throw new Exception("Product not found");
+                product.Rating = product.Rating + reviewRate;
+                product.RatingCount = product.RatingCount + reviewCount;
+                unitOfWork.Products.Update(product);
+                await unitOfWork.CompleteAsync();
+                await cacheServices.RemoveCachedDataAsync(cacheKey);
+                return new ResultBase
+                {
+                    IsSuccess = true,
+                };
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.Message);
+                return new ResultBase
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+
+        }
+        public async Task<ResultBase> UpdateProductQuantity(Guid productId, int quantity)
+        {
+            try
+            {
+                var cacheKey = $"Product_{productId}";
+                var productInCache = await cacheServices.GetCachedDataAsync<ProductDto>(cacheKey);
+                var product = (mapper.Map<Product>(productInCache)
+                    ?? await unitOfWork.Products.GetByIdAsync(productId))
+                    ?? throw new Exception("Product not found");
+                product.Quantity = product.Quantity - quantity;
+                product.UnitSold = product.UnitSold.HasValue ? product.UnitSold + quantity : quantity;
+                unitOfWork.Products.Update(product);
+                await unitOfWork.CompleteAsync();
+                await cacheServices.RemoveCachedDataAsync(cacheKey);
+                return new ResultBase
+                {
+                    IsSuccess = true,
+                };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.Message);
+                return new ResultBase
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
     }
 }

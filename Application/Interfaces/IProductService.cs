@@ -18,5 +18,7 @@ namespace Application.Interfaces
 
         Task<PagedResult<ProductInListDto>> GetProductBySupplier(Guid supplierId, int page, int pageSize,
             bool isDescending);
+        Task<ResultBase> UpdateProductRating(Guid productId, int reviewRate, int reviewCount);
+        Task<ResultBase> UpdateProductQuantity(Guid productId, int quantity);
     }
 }

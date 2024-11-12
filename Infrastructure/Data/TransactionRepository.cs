@@ -27,7 +27,10 @@ namespace Infrastructure.Data
             var transactions = await _context.PaymentTransactions.Where(t => t.UserId == userId).ToListAsync();
             return transactions;
         }
-      
+        public async Task<IEnumerable<PaymentTransaction>> GetSalesInDateRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            return await _context.PaymentTransactions.Where(t => t.PaymentDate >= startDate && t.PaymentDate <= endDate).ToListAsync();
+        }
 
     }
 }

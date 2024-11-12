@@ -20,6 +20,7 @@ namespace Application.Services.Payment
         IUnitOfWorkBase unitOfWork,
         ICacheService cacheService,
         IOrderService orderService,
+        IProductService productService,
         ITransactionService transactionService,
         ILogger<PaypalService> logger)
         : IPaypalService
@@ -132,7 +133,7 @@ namespace Application.Services.Payment
                 {
                     throw new Exception("Payment not approved.");
                 }
-                var order = await unitOfWork.Orders.GetByIdAsync(orderId)
+                var order = await unitOfWork.Orders.GetOrderById(orderId)
                             ?? throw new Exception("Order not fount");
                 var createTransactionRequest = new CreateUpdateTransactionDto()
                 {
@@ -157,6 +158,14 @@ namespace Application.Services.Payment
                 unitOfWork.Orders.Entry(order).Property(o => o.PaymentMethod).IsModified = true;
                 await unitOfWork.CompleteAsync();
                 await cacheService.RemoveCachedDataAsync(cacheKey);
+                foreach (var detail in order.OrderDetails)
+                {
+                    var product = await productService.UpdateProductQuantity(detail.ProductId, detail.Quantity);
+                    if (!product.IsSuccess)
+                    {
+                       throw new Exception($"Update product quantity error : {product.Message}");
+                    }
+                }
                 return new Result<string>
                 {
                     IsSuccess = true,

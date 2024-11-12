@@ -18,6 +18,9 @@ namespace Infrastructure.UnitOfWork
         public IOrderRepository Orders { get; set; }
         public IUserRepository Users { get; set; }
         public ITransactionRepository Transactions { get; set; }
+        public IReviewRepository Reviews { get; set; }
+        public IReviewImageRepository ReviewImages { get; set; }
+        public IWishlistRepository Wishlists { get; set; }
         public UnitOfWorkBase(HshopContext context, IMapper mapper)
         {
             _context = context;
@@ -29,6 +32,9 @@ namespace Infrastructure.UnitOfWork
             Orders = new OrderRepository(_context);
             Users = new UserRepository(_context);
             Transactions = new TransactionRepository(_context);
+            Reviews = new ReviewRepository(_context);
+            ReviewImages = new ReviewImageRepository(_context);
+            Wishlists = new WishlistRepository(_context);
         }
 
         public async Task<int> CompleteAsync()

@@ -12,6 +12,7 @@ namespace Core.Interfaces
         Task<bool> CheckOrderExists(Guid orderId);
         Task<bool> AddTransactionAsync(PaymentTransaction transaction);
         Task<IEnumerable<PaymentTransaction>> GetTransactionByUserID(Guid userId);
+        Task<IEnumerable<PaymentTransaction>> GetSalesInDateRangeAsync(DateTime startDate, DateTime endDate);
 
     }
 }

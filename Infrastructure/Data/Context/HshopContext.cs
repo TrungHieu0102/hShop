@@ -3,6 +3,7 @@ using Core.SeedWorks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 
 namespace Infrastructure.Data.Context
@@ -18,6 +19,9 @@ namespace Infrastructure.Data.Context
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public DbSet<Review> Reviews { get; set; }
+        public DbSet<ReviewImage> ReviewImages { get; set; }
+        public DbSet<Wishlist> Wishlists { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -42,7 +46,10 @@ namespace Infrastructure.Data.Context
             builder.Entity<Product>()
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
-            
+            builder.Entity<Product>()
+              .Property(r => r.Rating)
+              .HasColumnType("decimal(3, 2)");
+
             builder.Entity<Cart>()
                 .HasOne(c => c.User)
                 .WithOne(u => u.Cart)
@@ -50,7 +57,7 @@ namespace Infrastructure.Data.Context
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<CartItem>()
-                .HasKey(ci => new { ci.CartId, ci.ProductId }); // Định nghĩa khóa chính
+                .HasKey(ci => new { ci.CartId, ci.ProductId }); 
 
             builder.Entity<CartItem>()
                 .HasOne(ci => ci.Cart)
@@ -68,7 +75,7 @@ namespace Infrastructure.Data.Context
                 .HasPrecision(18, 2); 
             
             builder.Entity<OrderDetail>()
-                .HasKey(od => new { od.OrderId, od.ProductId }); // Define composite key
+                .HasKey(od => new { od.OrderId, od.ProductId });
             builder.Entity<OrderDetail>()
                 .HasOne(od => od.Order)
                 .WithMany(o => o.OrderDetails)
@@ -92,7 +99,34 @@ namespace Infrastructure.Data.Context
                 .HasMany(u => u.PaymentTransactions)
                 .WithOne(pt => pt.User)
                 .HasForeignKey(pt => pt.UserId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Review>()
+               .HasOne(r => r.Product)
+               .WithMany(p => p.Reviews)
+               .HasForeignKey(r => r.ProductId)
+               .OnDelete(DeleteBehavior.Cascade); 
+            builder.Entity<Review>()
+                .HasOne(r => r.User)
+                .WithMany(u => u.Reviews)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<ReviewImage>()
+                .HasOne(ri => ri.Review)
+                .WithMany(r => r.ReviewImages)
+                .HasForeignKey(ri => ri.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<Review>()
+               .Property(r => r.Rating)
+               .HasColumnType("decimal(3, 2)");
+            builder.Entity<Wishlist>(x => x.HasKey(p => new { p.UserId, p.ProductId }));
+            builder.Entity<Wishlist>()
+                .HasOne(u => u.User)
+                .WithMany(u => u.Wishlists)
+                .HasForeignKey(u => u.UserId);
+            builder.Entity<Wishlist>()
+                .HasOne(p => p.Product)
+                .WithMany(p => p.Wishlists)
+                .HasForeignKey(p => p.ProductId);
         }
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {

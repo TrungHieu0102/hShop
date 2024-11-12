@@ -24,10 +24,9 @@ namespace WebApi.Controllers
             {
                 return BadRequest(result.Message);
             }
-
             return Ok(new { redirectUrl = result.Data });
         }
-
+        
         [HttpGet("paypal/execute-payment")]
         public async Task<IActionResult> ExecutePayment([FromQuery] string paymentId, [FromQuery] string payerId,
             [FromQuery] Guid orderId)
@@ -37,16 +36,14 @@ namespace WebApi.Controllers
             {
                 return BadRequest(result.Message);
             }
-
             return Ok(new { result.Message });
         }
-
+        
         [HttpGet("paypal/cancel")]
         public IActionResult Cancel()
         {
             return BadRequest("Payment was canceled.");
         }
-
         [HttpPost("vnpay/create-payment/{orderId:guid}")]
         public async Task<IActionResult> CreatePaymentUrl([FromRoute] Guid orderId)
         {
@@ -60,8 +57,7 @@ namespace WebApi.Controllers
                 return BadRequest(new { Message = ex.Message });
             }
         }
-
-
+        
         [HttpGet("vnpay/callback")]
         public async Task<IActionResult> PaymentCallBack()
         {

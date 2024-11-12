@@ -13,6 +13,5 @@ namespace Core.Interfaces
         void Attach(Order order);
         EntityEntry<Order> Entry(Order order);
 
-
     }
 }

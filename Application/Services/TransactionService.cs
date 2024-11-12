@@ -14,8 +14,6 @@ namespace Application.Services
         IMapper mapper, ILogger<TransactionService> logger,
         ICacheService cacheService) : ITransactionService
     {
-
-
         public async Task<Result<TransactionDto>> CreateTransaction(CreateUpdateTransactionDto request)
         {
             try
@@ -257,7 +255,7 @@ namespace Application.Services
                     IsSuccess = true
                 };
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.LogError(e.Message);
                 return new PagedResult<TransactionDto>
@@ -270,7 +268,7 @@ namespace Application.Services
                 };
             }
         }
-        public async Task<Dictionary<PaymentMethod, int>>GetTransactionStatistics()
+        public async Task<Dictionary<PaymentMethod, int>> GetTransactionStatistics()
         {
             var transactions = await unitOfWork.Transactions.GetAllAsync();
             var statistics = transactions
@@ -279,5 +277,6 @@ namespace Application.Services
                 .ToDictionary(g => g.PaymentMethod, g => g.Count);
             return statistics;
         }
+       
     }
 }

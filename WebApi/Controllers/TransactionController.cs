@@ -13,8 +13,8 @@ namespace WebApi.Controllers
     public class TransactionController(ITransactionService transactionService) : ControllerBase
     {
         [HttpGet]
-        public async Task<IActionResult> GetAllTransaction([FromQuery] string? searchByPaymentMethod, 
-                                                            [FromQuery] int page = 1, [FromQuery] int pageSize = 10, 
+        public async Task<IActionResult> GetAllTransaction([FromQuery] string? searchByPaymentMethod,
+                                                            [FromQuery] int page = 1, [FromQuery] int pageSize = 10,
                                                             [FromQuery] bool sortByDate = false)
         {
             var pagedResult = await transactionService.GetAllTransaction(searchByPaymentMethod, page, pageSize, sortByDate);
@@ -57,8 +57,8 @@ namespace WebApi.Controllers
         [HttpGet("user/{userId:guid}")]
         public async Task<IActionResult> GetTransactionByUserId([FromRoute] Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool sortByDate = false)
         {
-            var result = await transactionService.GetTransactionByUserId(userId,page, pageSize, sortByDate);
-            if (!result.IsSuccess || result.Results.Count() == 0 )
+            var result = await transactionService.GetTransactionByUserId(userId, page, pageSize, sortByDate);
+            if (!result.IsSuccess || result.Results.Count() == 0)
             {
                 return NotFound(result.AdditionalData);
             }

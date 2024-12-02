@@ -23,7 +23,7 @@ cd hshop
 ```
 ### Step 2: Configure the Database
 1. Create a database in SQL Server (or any database you prefer).
-2. Update the connection string in the  ```appsettings.json``` file located in the ```WebApi/```  folderto point to your database:
+2. Update the connection string in the  ```appsettings.json``` file located in the ```WebApi/```  folder to point to your database:
 
 ### Step 3: Apply Migrations and Initialize the Database
 Next, apply the migrations using Entity Framework Core to create the necessary tables in your database.

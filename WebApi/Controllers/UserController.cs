@@ -11,9 +11,10 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [ValidateModel]
-    public class UserController(IUserService userService, IConfiguration configuration) : ControllerBase
+    public class UserController(IUserService userService) : ControllerBase
     {
         [HttpGet("{userId:guid}")]
+
         public async Task<IActionResult> GetUserInformation([FromRoute] Guid userId)
         {
             var result = await userService.GetInformationById(userId);

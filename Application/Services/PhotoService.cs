@@ -5,7 +5,6 @@ using Core.Entities;
 using Core.Interfaces;
 using Core.Model;
 using Microsoft.AspNetCore.Http;
-using static Core.SeedWorks.Constants.Permissions;
 
 namespace Application.Services
 {
@@ -50,7 +49,7 @@ namespace Application.Services
                 await unitOfWork.Images.DeleteImagesByProductIdAsync(productId);
             }
 
-            if (newImages != null && newImages.Any())
+            if (newImages != null && newImages.Count != 0)
             {
                 foreach (var image in newImages)
                 {
@@ -86,7 +85,7 @@ namespace Application.Services
                 await unitOfWork.ReviewImages.DeleteImagesByReviewIdAsync(reviewId);
             }
 
-            if (reviewImages != null && reviewImages.Any())
+            if (reviewImages != null && reviewImages.Count != 0)
             {
                 foreach (var image in reviewImages)
                 {

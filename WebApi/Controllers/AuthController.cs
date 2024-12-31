@@ -1,20 +1,10 @@
 ﻿using Application.DTOs.AuthsDto;
 using Application.Interfaces;
 using Application.Model;
-using Application.Services;
-using Core.Entities;
 using Core.Model.Auth;
-using Core.SeedWorks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using WebApi.Filters;
-using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace WebApi.Controllers
 {
@@ -22,11 +12,9 @@ namespace WebApi.Controllers
     [Route("api/[controller]")]
     [ValidateModel]
 
-    public class AuthController(IAuthService authService, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
+    public class AuthController(IAuthService authService)
         : ControllerBase
     {
-        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-        private readonly IConfiguration _configuration = configuration;
 
         [HttpPost("sign-up")]
         public async Task<IActionResult> SignUp([FromForm] SignUpDto signUpDto)

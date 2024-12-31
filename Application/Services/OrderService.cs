@@ -327,13 +327,13 @@ public class OrderService(
 
             if (newStatus == OrderStatus.Shipped)
             {
-                var user = await userManager.FindByIdAsync(order.UserId.ToString());
+                var user = await userManager.FindByIdAsync(order.UserId.ToString())?? throw new Exception("User not found");
                 var orderItem = await GetOrderItemsAsync(order);
                 string body =
                     GenerateEmailBody.GetEmailOrderStatusBody(user.GetFullName(), orderId, orderItem,
                         order.TotalAmount);
 
-                await emailService.SendEmailAsync(user.Email, "Đơn hàng đã được giao thành công",
+                await emailService.SendEmailAsync(user.Email!, "Đơn hàng đã được giao thành công",
                     body, true);
             }
 

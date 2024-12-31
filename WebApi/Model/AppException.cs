@@ -36,6 +36,6 @@ namespace WebApi.Model
     {
         public int Status { get; set; } = 500;
 
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 }

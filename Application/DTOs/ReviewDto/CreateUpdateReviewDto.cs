@@ -18,7 +18,7 @@ namespace Application.DTOs.ReviewDto
         public Guid UserId { get; set; }
         [Required]
         [StringLength(1000)]
-        public string Content { get; set; }
+        public string? Content { get; set; }
         [Range(1, 5)]
         public int Rating { get; set; }
         public virtual ICollection<IFormFile> ReviewImages { get; set; } = new List<IFormFile>();

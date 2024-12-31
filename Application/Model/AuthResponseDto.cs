@@ -8,10 +8,10 @@ namespace Application.Model
 {
     public class AuthResponseDto
     {
-        public string AccessToken { get; set; }
-        public string RefreshToken { get; set; }
+        public string? AccessToken { get; set; }
+        public string? RefreshToken { get; set; }
         public DateTime Expiration { get; set; }
         public bool IsSuccess { get; set; }
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 }

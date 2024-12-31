@@ -9,7 +9,6 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [ValidateModel]
-
     public class TransactionController(ITransactionService transactionService) : ControllerBase
     {
         [HttpGet]

@@ -23,13 +23,13 @@ namespace Application.DTOs.TransactionDto
         public decimal Amount { get; set; }
         [Required]
         [StringLength(50, ErrorMessage = "Payment method cannot exceed 50 characters.")]
-        public string PaymentMethod { get; set; }
+        public string? PaymentMethod { get; set; }
         [StringLength(100, ErrorMessage = "Transaction reference cannot exceed 100 characters.")]
-        public string TransactionReference { get; set; }
+        public string? TransactionReference { get; set; }
         [StringLength(100, ErrorMessage = "Transaction reference cannot exceed 100 characters.")]
-        public string Status { get; set; }
+        public string? Status { get; set; }
         [StringLength(10, ErrorMessage = "Currency cannot exceed 10 characters.")]
-        public string Currency { get; set; }
+        public string? Currency { get; set; }
         [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
         public string? Notes { get; set; }
     }

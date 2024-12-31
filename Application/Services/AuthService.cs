@@ -19,7 +19,6 @@ using Application.Common.TemplateEmail;
 using Core.Model.Auth;
 using static Google.Apis.Auth.GoogleJsonWebSignature;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Asn1.Ocsp;
 
 
 namespace Application.Services
@@ -197,7 +196,7 @@ namespace Application.Services
             }
 
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
-            var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
+            var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword!);
 
             if (result.Succeeded)
             {
@@ -364,7 +363,7 @@ namespace Application.Services
                 return new AuthResponseDto
                 {
                     AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-                    RefreshToken = user.RefreshToken,
+                    RefreshToken = user.RefreshToken!,
                     Expiration = user.RefreshTokenExpiryTime ?? DateTime.MinValue,
                     IsSuccess = true,
                     Message = "Success"

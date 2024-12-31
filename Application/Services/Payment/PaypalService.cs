@@ -106,7 +106,7 @@ namespace Application.Services.Payment
                 return new Result<string>
                 {
                     IsSuccess = true,
-                    Data = createdPayment.links.FirstOrDefault(x => x.rel.ToLower() == "approval_url")?.href
+                    Data = createdPayment.links.FirstOrDefault(x => x.rel.ToLower() == "approval_url")!.href
                 };
             }
             catch (PaymentsException ex)
